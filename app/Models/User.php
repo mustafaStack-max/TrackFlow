@@ -24,7 +24,7 @@ class User extends Authenticatable
         'uuid' ,
         'email',
         'password',
-       ' avatar_url',
+       'avatar_url',
        'currency',
 
     ];
@@ -59,5 +59,21 @@ class User extends Authenticatable
                 $user->uuid = (string) Str::uuid();
             }
         });
+    }
+
+    public function accounts () 
+    {
+        return $this->hasMany(Account::class) ;
+    }
+
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class) ;
+    }
+
+    public function categories ()
+    {
+        return $this->hasMany(Category::class) ;
     }
 }
