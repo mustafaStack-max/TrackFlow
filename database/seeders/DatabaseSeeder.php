@@ -2,9 +2,13 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Account;
+use App\Models\Category;
+use App\Models\Transaction;
+use App\Models\User;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,9 +21,21 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $user = User::factory()->create([
+
+            'username' => 'Mustafa',
+            'email' => 'mustafa.Email@example.com',
+
         ]);
+
+        $accounts = Account::factory(3)->create(['user_id' => $user->id]);
+        $categories = Category::factory(5)->create(['user_id' => $user->id]);
+
+
+    Transaction::factory(20)->create([
+        'user_id' => $user->id,
+        'account_id' => fn() => $accounts->random()->id,
+        'category_id' => fn() => $categories->random()->id,
+    ]);
     }
 }
