@@ -29,8 +29,6 @@ return new class extends Migration
             $table->enum('payment_method' , ['cash','card','transfer','other'] )->default('cash') ;
             $table->json('tags')->nullable() ;
 
-
-
             $table->timestamps();
             $table->softDeletes() ;
 
