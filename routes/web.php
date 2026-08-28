@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +31,9 @@ Route::post('/accounts' , [AccountController::class , 'store'])->middleware('aut
 Route::put('/accounts/{account:uuid}' , [AccountController::class , 'update'])->middleware('auth')->name('accounts.update') ;
 Route::delete('/accounts/{account:id}' , [AccountController::class , 'destroy'])->middleware('auth')->name('accounts.destroy') ;
 
-
+Route::get('/categories' , [CategoryController::class , 'index'])->middleware('auth') ;
+Route::post('/categories' , [CategoryController::class , 'store'])->middleware('auth')->name('categories.store') ;
+Route::put('/categories/{category:id}' , [CategoryController::class , 'update'])->middleware('auth')->name('categories.update')  ;
+Route::delete('/categories/{category:id}' , [CategoryController::class , 'destroy'])->middleware('auth')->name('categories.destroy')  ;
 
 require __DIR__.'/auth.php';
