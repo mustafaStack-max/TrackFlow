@@ -33,7 +33,7 @@ class CategoryController extends Controller
     ]);
     }
 
-    public function update(Request $request)
+    public function update(Request $request , Category $category)
     {
      $validated = $request->validate([
         'name'      => ['nullable', 'string', 'max:30'],
@@ -41,7 +41,7 @@ class CategoryController extends Controller
         'color_hex' => ['nullable', 'string', 'hex_color'],
     ]);
 
-     $request->user()->categories()->create($validated);
+     $category->update($validated);
 
      return redirect()->back()->with([
         'success' => true,
