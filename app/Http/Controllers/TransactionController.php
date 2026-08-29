@@ -28,7 +28,7 @@ class TransactionController extends Controller
             'type' => 'required|in:expense,income',
             'description' => 'nullable|string|max:255',
             'amount' => 'required|numeric',
-            'currency' => 'required|string|size:3',
+            'currency' => 'nullable|string|size:3',
             'transaction_date' => 'required|date',
             'payment_method' => 'required|in:cash,card,transfer,other',
         ]);
