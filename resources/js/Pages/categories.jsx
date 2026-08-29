@@ -1,47 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Head, useForm, usePage } from '@inertiajs/react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
-// === مكونات الأيقونات SVG ===
-const PlusIcon = () => (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+const COLORS = ['#00e676', '#00d4ff', '#ffab00', '#ff3d5a', '#b388ff', '#40c4ff', '#ff6d00', '#69f0ae', '#ffd740', '#ea80fc'];
+
+/* ── inline icons (1:1 with the original sprite paths) ── */
+const IcoCatDefault = (p) => (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" {...p}>
+        <circle cx="10" cy="10" r="7" />
+    </svg>
+);
+const IcoCatSymbol = (p) => (
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" {...p}>
+        <rect x="2" y="2" width="7" height="7" rx="1" />
+        <rect x="11" y="2" width="7" height="7" rx="1" />
+        <rect x="2" y="11" width="7" height="7" rx="1" />
+        <path d="M14.5 11v7M11 14.5h7" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+);
+const IcoEdit = (p) => (
+    <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" {...p}>
+        <path d="M14 2l4 4-10 10H4v-4L14 2z" strokeLinejoin="round" />
+    </svg>
+);
+const IcoDel = (p) => (
+    <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}>
+        <polyline points="4,6 16,6" strokeLinecap="round" />
+        <path d="M8 6V4h4v2" strokeWidth="1.3" strokeLinecap="round" />
+        <path d="M5 6l1 11h8l1-11" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+const IcoPlus = (p) => (
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}>
+        <line x1="10" y1="3" x2="10" y2="17" strokeLinecap="round" />
+        <line x1="3" y1="10" x2="17" y2="10" strokeLinecap="round" />
+    </svg>
+);
+const IcoCheck = (p) => (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}>
+        <path d="M6 10l2.5 2.5L14 7" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="10" cy="10" r="8" />
     </svg>
 );
 
-const EditIcon = () => (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-    </svg>
-);
-
-const TrashIcon = () => (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-    </svg>
-);
-
-const TagIcon = ({ color }) => (
-    <svg className="w-5 h-5" style={{ color: color || '#00e676' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-    </svg>
-);
-
-const CheckCircleIcon = () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-);
+/* same three families as the rest of the app — make sure they're loaded once
+   (Share Tech Mono / Rajdhani / IBM Plex Sans Arabic), no separate stylesheet needed here */
+const F_MONO = "font-['Share_Tech_Mono',monospace]";
+const F_HEAD = "font-['Rajdhani',sans-serif]";
+const F_AR = "font-['IBM_Plex_Sans_Arabic',sans-serif]";
 
 export default function Categories({ Categories = [] }) {
-    const { success, message } = usePage().props;
+    const { message } = usePage().props;
     const [toastMessage, setToastMessage] = useState(null);
+    const [toastVisible, setToastVisible] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('create');
     const [currentCategoryId, setCurrentCategoryId] = useState(null);
 
     const totalCategories = Categories.length;
-    const systemCategories = Categories.filter(c => c.is_system).length;
-    const customCategories = Categories.filter(c => !c.is_system).length;
+    const systemCategories = Categories.filter((c) => c.is_system).length;
+    const customCategories = Categories.filter((c) => !c.is_system).length;
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors } = useForm({
         name: '',
@@ -52,10 +70,15 @@ export default function Categories({ Categories = [] }) {
     useEffect(() => {
         if (message) {
             setToastMessage(message);
-            const timer = setTimeout(() => setToastMessage(null), 3000);
-            return () => clearTimeout(timer);
+            setToastVisible(true);
+            const hide = setTimeout(() => setToastVisible(false), 2700);
+            const clear = setTimeout(() => setToastMessage(null), 3000);
+            return () => {
+                clearTimeout(hide);
+                clearTimeout(clear);
+            };
         }
-    }, [message, success]);
+    }, [message]);
 
     const openCreateModal = () => {
         setModalMode('create');
@@ -92,223 +115,214 @@ export default function Categories({ Categories = [] }) {
     };
 
     return (
-        <div dir="rtl" className="min-h-screen bg-[#070a0f] text-slate-100 p-6 font-mono selection:bg-cyan-500 selection:text-black">
+        <AuthenticatedLayout>
             <Head title="إدارة التصنيفات" />
-            
-            {/* Header Section */}
-            <div className="flex justify-between items-end mb-6 border-b border-slate-800 pb-4">
-                <div>
-                    <span className="text-xs tracking-widest text-slate-500 uppercase">
-                        CATEGORIES MANAGEMENT // SYSTEM · CUSTOM //
-                    </span>
-                    <h1 className="text-3xl font-extrabold text-[#00e676] tracking-wide mt-1">
-                        إدارة التصنيفات
-                    </h1>
-                </div>
-            </div>
-
-            {/* Stats Bar */}
-            <div className="bg-[#0b1019] border border-slate-800 rounded-lg p-5 mb-8 flex flex-wrap justify-between items-center shadow-2xl">
-                <div className="flex gap-8 text-center sm:text-right">
+            <div dir="rtl" className="">
+                {/* HEADER */}
+                <div className="flex items-start justify-between mb-[18px]">
                     <div>
-                        <div className="text-xs text-slate-500 uppercase tracking-wider">TOTAL</div>
-                        <div className="text-2xl font-bold text-cyan-400 mt-1">{totalCategories}</div>
+                        <div className={`${F_HEAD} text-[1.3rem] font-bold tracking-[3px] uppercase text-[#e8f5ef]`}>
+                            إدارة <em className={`${F_HEAD} not-italic text-[#00e676]`}>التصنيفات</em>
+                        </div>
+                        <div className={`${F_MONO} text-[0.72rem] text-[#2d4a38] tracking-[2px] mt-1`}>
+                            // CATEGORIES MANAGEMENT // SYSTEM + CUSTOM
+                        </div>
                     </div>
-                    <div>
-                        <div className="text-xs text-slate-500 uppercase tracking-wider">SYSTEM</div>
-                        <div className="text-xl font-bold text-emerald-500 mt-1">{systemCategories}</div>
-                    </div>
-                    <div>
-                        <div className="text-xs text-slate-500 uppercase tracking-wider">CUSTOM</div>
-                        <div className="text-xl font-bold text-amber-400 mt-1">{customCategories}</div>
-                    </div>
-                </div>
-
-                <div className="border-r border-slate-800 pr-8 text-left">
-                    <div className="text-xs text-slate-500 uppercase tracking-widest">ACTIVE STATUS</div>
-                    <div className="text-2xl font-black text-[#00e676] mt-1 tracking-wider">
-                        ONLINE
-                    </div>
-                </div>
-            </div>
-
-            {/* Grid Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-                {/* Add New Category Card */}
-                <div 
-                    onClick={openCreateModal}
-                    className="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 bg-[#090d14]/50 rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-[#0b121e] group min-h-[260px]"
-                >
-                    <div className="w-12 h-12 rounded-full border border-slate-700 group-hover:border-cyan-400 flex items-center justify-center text-slate-400 group-hover:text-cyan-400 transition-colors mb-4">
-                        <PlusIcon />
-                    </div>
-                    <span className="text-lg font-bold text-slate-300 group-hover:text-cyan-400 transition-colors">
-                        إضافة تصنيف جديد
-                    </span>
-                    <span className="text-xs text-slate-600 tracking-widest mt-2 uppercase">
-                        EXPENSES · INCOME · BILLS
-                    </span>
-                </div>
-
-                {/* Category Cards */}
-                {Categories.map((category) => (
-                    <div 
-                        key={category.id}
-                        className="bg-[#0b1019] border-t-2 rounded-lg p-5 flex flex-col justify-between shadow-lg relative group transition-transform hover:-translate-y-1"
-                        style={{ borderColor: category.color_hex || '#00e676' }}
+                    <button
+                        type="button"
+                        onClick={openCreateModal}
+                        className={`${F_HEAD} flex items-center gap-1.5 bg-transparent border border-[#00d4ff] px-[13px] py-[5px] text-[#00d4ff] text-[0.75rem] font-semibold tracking-[1.5px] uppercase cursor-pointer transition-colors duration-150 hover:bg-[rgba(0,212,255,0.08)]`}
                     >
-                        {/* Actions Toolbar */}
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex gap-2 min-h-[34px]">
-                                {!category.is_system && (
-                                    <>
-                                        <button 
-                                            onClick={() => openEditModal(category)}
-                                            className="p-2 border border-slate-800 hover:border-cyan-500 text-slate-400 hover:text-cyan-400 rounded transition-colors"
-                                            title="تعديل"
-                                        >
-                                            <EditIcon />
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDelete(category.id)}
-                                            className="p-2 border border-slate-800 hover:border-rose-500 text-slate-400 hover:text-rose-500 rounded transition-colors"
-                                            title="حذف"
-                                        >
-                                            <TrashIcon />
-                                        </button>
-                                    </>
-                                )}
-                            </div>
+                        <IcoPlus /> تصنيف جديد
+                    </button>
+                </div>
 
-                            <div className="text-left">
-                                <div className="text-lg font-bold text-slate-100 flex items-center gap-2 justify-end">
-                                    <span>{category.name}</span>
-                                    <TagIcon color={category.color_hex} />
-                                </div>
-                                <span className={`inline-block border text-[10px] uppercase px-2 py-0.5 rounded mt-1 ${
-                                    category.is_system 
-                                        ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' 
-                                        : 'border-amber-500/30 text-amber-400 bg-amber-500/10'
-                                }`}>
-                                    {category.is_system ? 'SYSTEM' : 'CUSTOM'}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Icon/Name display */}
-                        <div className="text-center my-4">
-                            <span 
-                                className="text-3xl font-extrabold tracking-tight uppercase"
-                                style={{ color: category.color_hex || '#00e676' }}
-                            >
-                                {category.icon || 'Category'}
-                            </span>
-                        </div>
-
-                        {/* Mini Stats Breakdown */}
-                        <div className="grid grid-cols-1 bg-[#070a0f] p-3 rounded border border-slate-800/60 text-xs mb-3">
-                            <div className="text-center">
-                                <div className="text-slate-500 text-[10px] uppercase">Usage Stats</div>
-                                <div className="text-slate-300 font-bold mt-1">0 عمليات مسجلة</div>
-                            </div>
-                        </div>
-
-                        {/* Bottom Status / Progress Bar */}
+                {/* STATS BAR */}
+                <div className="bg-[#101820] border border-[rgba(0,230,118,0.13)] px-5 py-[18px] mb-[22px] flex flex-wrap justify-between items-center gap-4">
+                    <div className="flex gap-8 flex-wrap">
                         <div>
-                            <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
-                                <div 
-                                    className="h-full rounded-full opacity-70" 
-                                    style={{ width: '100%', backgroundColor: category.color_hex || '#00e676' }}
-                                />
-                            </div>
-                            <div className="text-[10px] text-slate-600 text-center mt-2 uppercase tracking-widest">
-                                {category.color_hex} // ACTIVE
-                            </div>
+                            <div className={`${F_MONO} text-[0.6rem] tracking-[2px] text-[#2d4a38] uppercase mb-1`}>TOTAL</div>
+                            <div className={`${F_MONO} text-[1.3rem] text-[#00d4ff]`}>{totalCategories}</div>
+                        </div>
+                        <div>
+                            <div className={`${F_MONO} text-[0.6rem] tracking-[2px] text-[#2d4a38] uppercase mb-1`}>SYSTEM</div>
+                            <div className={`${F_MONO} text-[1.1rem] text-[#00e676]`}>{systemCategories}</div>
+                        </div>
+                        <div>
+                            <div className={`${F_MONO} text-[0.6rem] tracking-[2px] text-[#2d4a38] uppercase mb-1`}>CUSTOM</div>
+                            <div className={`${F_MONO} text-[1.1rem] text-[#ffc107]`}>{customCategories}</div>
                         </div>
                     </div>
-                ))}
-            </div>
-
-            {/* Toast Notification */}
-            {toastMessage && (
-                <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#0b1019] border border-emerald-500/50 shadow-2xl text-emerald-400 px-5 py-3 rounded-lg animate-pulse">
-                    <CheckCircleIcon />
-                    <span className="font-bold text-sm tracking-wide">{toastMessage}</span>
+                    <div className="text-left">
+                        <div className={`${F_MONO} text-[0.6rem] tracking-[3px] text-[#2d4a38] uppercase mb-1`}>ACTIVE STATUS</div>
+                        <div className={`${F_HEAD} text-[1.2rem] font-black text-[#00e676] tracking-[2px]`}>ONLINE</div>
+                    </div>
                 </div>
-            )}
 
-            {/* Modal for Create/Edit */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-[#0b1019] border border-slate-800 rounded-lg max-w-md w-full p-6 shadow-2xl">
-                        <h2 className="text-xl font-bold text-[#00e676] mb-4">
-                            {modalMode === 'edit' ? 'تعديل التصنيف' : 'إضافة تصنيف جديد'}
-                        </h2>
+                {/* CATEGORIES GRID */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {Categories.map((category) => {
+                        const color = category.color_hex || '#00e676';
+                        const isSystem = !!category.is_system;
+                        return (
+                            <div
+                                key={category.id}
+                                className="bg-[#101820] border border-[rgba(0,230,118,0.13)] p-4 relative overflow-hidden transition-all duration-200 hover:border-[rgba(0,230,118,0.45)] hover:-translate-y-px"
+                            >
+                                <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: color }} />
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">اسم التصنيف</label>
-                                <input 
-                                    type="text"
-                                    value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    className="w-full bg-[#070a0f] border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 outline-none"
-                                    placeholder="مثال: تسوق، فواتير..."
-                                    required
-                                />
-                                {errors.name && <div className="text-rose-500 text-xs mt-1">{errors.name}</div>}
-                            </div>
+                                <div className="flex justify-between items-start mb-[10px] mt-1">
+                                    <div
+                                        className="w-[38px] h-[38px] flex items-center justify-center border"
+                                        style={{ borderColor: `${color}44`, background: `${color}15`, color }}
+                                    >
+                                        <IcoCatDefault />
+                                    </div>
 
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">الاسم الإنجليزي (كأيقونة)</label>
-                                <input 
-                                    type="text"
-                                    value={data.icon}
-                                    onChange={(e) => setData('icon', e.target.value)}
-                                    className="w-full bg-[#070a0f] border border-slate-800 rounded px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 outline-none uppercase"
-                                    placeholder="مثال: SHOPPING"
-                                />
-                            </div>
+                                    <div className="flex gap-1.5">
+                                        {!isSystem ? (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    title="تعديل"
+                                                    onClick={() => openEditModal(category)}
+                                                    className="bg-transparent border border-[rgba(0,230,118,0.13)] text-[#5a8068] w-[26px] h-[26px] flex items-center justify-center cursor-pointer transition-all duration-150 hover:border-[#ffc107] hover:text-[#ffc107] hover:bg-[rgba(255,193,7,0.1)]"
+                                                >
+                                                    <IcoEdit />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    title="حذف"
+                                                    onClick={() => handleDelete(category.id)}
+                                                    className="bg-transparent border border-[rgba(0,230,118,0.13)] text-[#5a8068] w-[26px] h-[26px] flex items-center justify-center cursor-pointer transition-all duration-150 hover:border-[rgba(255,61,90,0.3)] hover:text-[#ff3d5a] hover:bg-[rgba(255,61,90,0.1)]"
+                                                >
+                                                    <IcoDel />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <span className={`${F_MONO} text-[0.55rem] tracking-[2px] px-1.5 py-0.5 bg-[rgba(0,230,118,0.07)] border border-[rgba(0,230,118,0.13)] text-[#5a8068]`}>
+                                                SYSTEM
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
 
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">لون التمييز (HEX)</label>
-                                <div className="flex gap-2 items-center">
-                                    <input 
-                                        type="color"
-                                        value={data.color_hex}
-                                        onChange={(e) => setData('color_hex', e.target.value)}
-                                        className="w-10 h-9 bg-transparent border-0 cursor-pointer"
-                                    />
-                                    <input 
-                                        type="text"
-                                        value={data.color_hex}
-                                        onChange={(e) => setData('color_hex', e.target.value)}
-                                        className="w-full bg-[#070a0f] border border-slate-800 rounded px-2 py-2 text-xs text-slate-200 focus:border-cyan-500 outline-none uppercase"
-                                    />
+                                <div className={`${F_HEAD} text-[0.92rem] font-bold text-[#e8f5ef] mb-[3px]`}>{category.name}</div>
+                                {category.icon && (
+                                    <div className={`${F_MONO} text-[0.68rem] mt-1`} style={{ color }}>
+                                        {category.icon}
+                                    </div>
+                                )}
+                                <div className={`${F_MONO} text-[0.68rem] text-[#a8c4b0] mt-1.5`}>
+                                    {category.usage_count || 0} عملية هذا الشهر
                                 </div>
                             </div>
+                        );
+                    })}
 
-                            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-800">
-                                <button 
+                    {/* ADD NEW CATEGORY */}
+                    <div
+                        onClick={openCreateModal}
+                        className="bg-[#101820] border-2 border-dashed p-4 flex flex-col items-center justify-center gap-2.5 cursor-pointer transition-colors duration-200 min-h-[140px]"
+                        style={{ borderColor: 'rgba(0,212,255,0.3)' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,212,255,0.06)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                        <IcoPlus width="26" height="26" style={{ color: '#00d4ff', opacity: 0.6 }} />
+                        <div className={`${F_HEAD} text-[0.92rem] text-[#5a8068]`}>تصنيف جديد</div>
+                    </div>
+                </div>
+
+                {/* MODAL */}
+                {isModalOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/85 backdrop-blur-[6px] z-[1000] flex items-center justify-center p-5"
+                        onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}
+                    >
+                        <div className="bg-[#101820] border border-[rgba(0,230,118,0.45)] w-full max-w-[420px] relative shadow-[0_0_80px_rgba(0,230,118,0.1)]">
+                            <div className="flex items-center justify-between px-5 py-[15px] border-b border-[rgba(0,230,118,0.13)] bg-[#141e27]">
+                                <div className={`${F_HEAD} text-[0.92rem] font-bold tracking-[3px] uppercase text-[#00e676] flex items-center gap-2.5`}>
+                                    {modalMode === 'edit' ? <IcoEdit /> : <IcoCatSymbol />}
+                                    {modalMode === 'edit' ? `تعديل: ${data.name}` : 'تصنيف جديد'}
+                                </div>
+                                <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 border border-slate-800 rounded text-slate-400 text-xs hover:bg-slate-800 transition-colors"
+                                    className={`${F_MONO} bg-transparent border border-[rgba(0,230,118,0.13)] text-[#a8c4b0] w-[30px] h-[30px] flex items-center justify-center cursor-pointer text-base transition-all duration-150 hover:border-[rgba(255,61,90,0.3)] hover:text-[#ff3d5a] hover:bg-[rgba(255,61,90,0.1)]`}
                                 >
-                                    إلغاء
-                                </button>
-                                <button 
-                                    type="submit"
-                                    disabled={processing}
-                                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-xs font-bold transition-colors disabled:opacity-50"
-                                >
-                                    {processing ? 'جاري الحفظ...' : (modalMode === 'edit' ? 'حفظ التعديلات' : 'إنشاء التصنيف')}
+                                    ✕
                                 </button>
                             </div>
-                        </form>
+
+                            <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className={`${F_MONO} text-[0.65rem] tracking-[2px] uppercase text-[#5a8068]`}>// اسم التصنيف</label>
+                                    <input
+                                        type="text"
+                                        value={data.name}
+                                        onChange={(e) => setData('name', e.target.value)}
+                                        placeholder="مثال: رياضة، صحة..."
+                                        required
+                                        className={`${F_AR} bg-[#0c1117] border border-[rgba(0,230,118,0.13)] px-[13px] py-2.5 text-[#e8f5ef] text-[0.82rem] outline-none transition-colors duration-200 w-full focus:border-[rgba(0,230,118,0.45)] focus:shadow-[0_0_12px_rgba(0,230,118,0.07)]`}
+                                    />
+                                    {errors.name && <div className={`${F_MONO} text-[#ff3d5a] text-[0.7rem]`}>{errors.name}</div>}
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                    <label className={`${F_MONO} text-[0.65rem] tracking-[2px] uppercase text-[#5a8068]`}>// الاسم الإنجليزي (كأيقونة)</label>
+                                    <input
+                                        type="text"
+                                        value={data.icon}
+                                        onChange={(e) => setData('icon', e.target.value.toUpperCase())}
+                                        placeholder="e.g. SHOPPING"
+                                        className={`${F_MONO} bg-[#0c1117] border border-[rgba(0,230,118,0.13)] px-[13px] py-2.5 text-[#e8f5ef] text-[0.8rem] uppercase outline-none transition-colors duration-200 w-full focus:border-[rgba(0,230,118,0.45)] focus:shadow-[0_0_12px_rgba(0,230,118,0.07)]`}
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                    <label className={`${F_MONO} text-[0.65rem] tracking-[2px] uppercase text-[#5a8068]`}>// اللون</label>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {COLORS.map((c) => (
+                                            <button
+                                                type="button"
+                                                key={c}
+                                                title={c}
+                                                onClick={() => setData('color_hex', c)}
+                                                style={{ background: c }}
+                                                className={
+                                                    'w-[26px] h-[26px] rounded-full cursor-pointer border-2 transition-all duration-150 p-0 hover:scale-[1.15] ' +
+                                                    (data.color_hex === c ? 'border-[#e8f5ef] scale-[1.15]' : 'border-transparent hover:border-[#e8f5ef]')
+                                                }
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={processing}
+                                    className={`${F_HEAD} bg-transparent border border-[#00d4ff] p-3 text-[#00d4ff] text-[0.92rem] font-bold tracking-[3px] uppercase cursor-pointer transition-colors duration-300 w-full hover:enabled:bg-[#00d4ff] hover:enabled:text-[#040507] hover:enabled:shadow-[0_0_30px_rgba(0,212,255,0.25)] disabled:opacity-40 disabled:cursor-not-allowed`}
+                                >
+                                    {processing ? '// جاري الحفظ...' : '// حفظ التصنيف //'}
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+
+                {/* TOAST */}
+                {toastMessage && (
+                    <div
+                        className={
+                            `fixed bottom-[22px] left-1/2 -translate-x-1/2 bg-[#101820] border border-[#00e676] text-[#00e676] px-[22px] py-[11px] z-[3000] flex items-center gap-2.5 whitespace-nowrap shadow-[0_0_30px_rgba(0,230,118,0.2)] transition-transform duration-300 ` +
+                            (toastVisible ? 'translate-y-0' : 'translate-y-[70px]')
+                        }
+                    >
+                        <IcoCheck />
+                        <span className={`${F_MONO} text-[0.82rem] tracking-[1.5px]`}>{toastMessage}</span>
+                    </div>
+                )}
+            </div>
+        </AuthenticatedLayout>
     );
 }
