@@ -2,13 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreTransactionRequest;
+use App\Http\Requests\UpdateTransactionRequest;
 use App\Models\Transaction;
+use App\Services\TransactionService;
+use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate ;
 
 class TransactionController extends Controller
 {
+    public function __construct(
+        protected TransactionService $transactionService
+    )
+    {}
+
     public function index(Request $request)
     {
         $transactions = $request->user()->transactions()->with(['category', 'account'])->latest()->get();
@@ -20,47 +30,33 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+
+
+public function store(StoreTransactionRequest $request)
+{
+
+    try {
+        $this->transactionService->create($request->user() ,  $request->validated()) ;
+    }catch(Exception $e)
     {
-        $validated = $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'account_id' => 'required|exists:accounts,id',
-            'type' => 'required|in:expense,income',
-            'description' => 'nullable|string|max:255',
-            'amount' => 'required|numeric',
-            'currency' => 'nullable|string|size:3',
-            'transaction_date' => 'required|date',
-            'payment_method' => 'required|in:cash,card,transfer,other',
-        ]);
-
-        $validated['uuid'] = Str::uuid();
-
-        $request->user()->transactions()->create($validated);
-
-        return redirect()->back()->with([
-            'success' => true,
-            'message' => 'تم إنشاء المعاملة بنجاح.',
-        ]);
+        return redirect()->back()->withErrors(['amount' => $e->getMessage()]) ;
     }
 
-    public function update(Request $request, Transaction $transaction)
+    return redirect()->back()->with([
+        'success' => true,
+        'message' => 'تم إنشاء المعاملة بنجاح.',
+    ]);
+}
+    public function update(UpdateTransactionRequest $request, Transaction $transaction)
     {
-        if ($request->user()->id !== $transaction->user_id) {
-            abort(403);
+        Gate::authorize('update' , $transaction) ;
+        try 
+        {
+            $this->transactionService->update($transaction ,  $request->validated()) ;
+        }catch (Exception $e)
+        {
+            return redirect()->back()->withErrors(['amount' => $e->getMessage()]) ;
         }
-
-        $validated = $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'account_id' => 'required|exists:accounts,id',
-            'type' => 'required|in:expense,income',
-            'description' => 'nullable|string|max:255',
-            'amount' => 'required|numeric',
-            'currency' => 'required|string|size:3',
-            'transaction_date' => 'required|date',
-            'payment_method' => 'required|in:cash,card,transfer,other',
-        ]);
-
-        $transaction->update($validated);
 
         return redirect()->back()->with([
             'success' => true,
@@ -68,17 +64,20 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, Transaction $transaction)
+    public function destroy(Transaction $transaction)
     {
-        if ($request->user()->id === $transaction->user_id) {
-            $transaction->delete();
-            
-            return redirect()->back()->with([
-                'success' => true, 
-                'message' => 'تم حذف المعاملة بنجاح.'
-            ]);
+        Gate::authorize('delete' , $transaction) ;
+        try
+        {
+            $this->transactionService->delete($transaction) ;
+        }catch(Exception $e)
+        {
+            return redirect()->back()->withErrors(['amount' => $e->getMessage()]) ;
         }
-
-        abort(403);
+            
+        return redirect()->back()->with([
+            'success' => true, 
+            'message' => 'تم حذف المعاملة بنجاح.'
+        ]);
     }
 }
