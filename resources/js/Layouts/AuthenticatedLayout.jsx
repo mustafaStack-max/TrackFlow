@@ -1,5 +1,6 @@
 import { Head, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
+import Sidebar from '@/Components/Sidebar';
 
 const MN_SHORT = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
@@ -185,31 +186,6 @@ export default function AuthenticatedLayout({
                     (isLight ? 'bg-[rgba(240,244,242,0.95)] border-[rgba(0,150,80,0.18)] text-[#00a854]' : 'bg-[rgba(8,12,16,0.95)] border-[rgba(0,230,118,0.13)] text-[#00e676]')
                 }
             >
-                {/* LOGO */}
-                <div className="flex items-center gap-3">
-                    <IcoLogo />
-                    <div>
-                        <div className={`${F_HEAD} text-[1.2rem] font-bold tracking-[4px] ${isLight ? 'text-[#1a2e22]' : 'text-[#e8f5ef]'}`}>
-                            TRACK<em className="not-italic text-[#00e676]">FLOW</em>
-                        </div>
-                        <div className={`${F_MONO} text-[0.58rem] tracking-[2px] hidden sm:block ${isLight ? 'text-[#a8c4b0]' : 'text-[#2d4a38]'}`}>
-                            MYSQL // FULL ANALYTICS // v5.0
-                        </div>
-                    </div>
-                </div>
-
-                {/* SYSTEM STATUS */}
-                <div className={`hidden md:flex items-center gap-2 text-[0.72rem] tracking-[1.5px] ${isLight ? 'text-[#3a5c45]' : 'text-[#a8c4b0]'}`}>
-                    <span className={`w-[7px] h-[7px] rounded-full ${dbOnline ? 'bg-[#00e676] animate-pulse' : 'bg-[#ff3d5a]'}`} style={dbOnline ? { boxShadow: '0 0 10px #00e676' } : undefined} />
-                    <span>{timeLabel}</span>
-                    <span className="opacity-40">//</span>
-                    <span>{dateLabel}</span>
-                    <span className="opacity-40">//</span>
-                    <span className="font-semibold tracking-[1px]" style={{ color: dbOnline ? '#00e676' : '#ff3d5a' }}>
-                        {dbOnline ? 'DB ONLINE' : 'OFFLINE'}
-                    </span>
-                </div>
-
                 {/* RIGHT ACTIONS */}
                 <div className="flex items-center gap-2">
                     {/* MONTH / DATE RANGE */}
@@ -334,13 +310,41 @@ export default function AuthenticatedLayout({
                     </button>
                 </div>
 
+                {/* SYSTEM STATUS */}
+                <div className={`hidden md:flex items-center gap-2 text-[0.72rem] tracking-[1.5px] ${isLight ? 'text-[#3a5c45]' : 'text-[#a8c4b0]'}`}>
+                    <span className={`w-[7px] h-[7px] rounded-full ${dbOnline ? 'bg-[#00e676] animate-pulse' : 'bg-[#ff3d5a]'}`} style={dbOnline ? { boxShadow: '0 0 10px #00e676' } : undefined} />
+                    <span>{timeLabel}</span>
+                    <span className="opacity-40">//</span>
+                    <span>{dateLabel}</span>
+                    <span className="opacity-40">//</span>
+                    <span className="font-semibold tracking-[1px]" style={{ color: dbOnline ? '#00e676' : '#ff3d5a' }}>
+                        {dbOnline ? 'DB ONLINE' : 'OFFLINE'}
+                    </span>
+                </div>
+
+                {/* LOGO */}
+                <div className="flex items-center gap-3">
+                    <IcoLogo />
+                    <div>
+                        <div className={`${F_HEAD} text-[1.2rem] font-bold tracking-[4px] ${isLight ? 'text-[#1a2e22]' : 'text-[#e8f5ef]'}`}>
+                            TRACK<em className="not-italic text-[#00e676]">FLOW</em>
+                        </div>
+                        <div className={`${F_MONO} text-[0.58rem] tracking-[2px] hidden sm:block ${isLight ? 'text-[#a8c4b0]' : 'text-[#2d4a38]'}`}>
+                            MYSQL // FULL ANALYTICS // v5.0
+                        </div>
+                    </div>
+                </div>
+
                 <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-[#00e676]/60 to-transparent" />
             </header>
 
-            {/* MAIN CONTENT — the missing piece: real page padding + background */}
-            <main className={`p-[22px] flex flex-col gap-5 min-h-[calc(100vh-58px)] ${isLight ? 'bg-[#e4ede8]' : 'bg-[#080c10]'}`}>
-                {children}
-            </main>
+            {/* MAIN CONTENT + SIDEBAR — sidebar mirrored to the other edge of the screen */}
+            <div className="flex" style={{ minHeight: 'calc(100vh - 58px)' }}>
+                <main className={`flex-1 min-w-0 p-[22px] flex flex-col gap-5 ${isLight ? 'bg-[#e4ede8]' : 'bg-[#080c10]'}`}>
+                    {children}
+                </main>
+                <Sidebar />
+            </div>
         </div>
     );
 }
