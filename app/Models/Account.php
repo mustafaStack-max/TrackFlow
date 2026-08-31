@@ -43,4 +43,11 @@ class Account extends Model
     {
         return $this->hasMany(Transaction::class) ;
     }
+
+    public function members ()
+    {
+        return $this->belongsToMany(User::class)
+                    ->withPivot('role' , 'spend_limit')
+                    ->withTimestamps() ;
+    }
 }

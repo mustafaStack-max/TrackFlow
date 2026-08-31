@@ -76,4 +76,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Category::class) ;
     }
+    public function sharedAccounts ( ) 
+    {
+        return $this->belongsToMany(Account::class)
+                    ->withPivot('role' , 'spend_limit')
+                    ->withTimestamps() ;
+    }
+
+    
 }
