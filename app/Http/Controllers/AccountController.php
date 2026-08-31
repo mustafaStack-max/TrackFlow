@@ -10,11 +10,32 @@ use Inertia\Inertia;
 
 class AccountController extends Controller
 {
-    public function index (Request $request)
-    {
-        return Inertia::render('Accounts' , [ "accounts" =>$request->user()->accounts()->latest()->get() ]) ;
-    }
+public function index(Request $request)
+{
+    $userId = $request->user()->id;
 
+    $accounts = Account::where('user_id', $userId)
+        ->orWhereHas('members', function ($query) use ($userId) {
+            $query->where('user_id', $userId);
+        })
+        ->with(['user:id,name,email', 'members']) 
+        ->latest()
+        ->get()
+        ->map(function ($account) use ($userId) {
+   
+            if ($account->user_id === $userId) {
+                $account->current_user_role = 'owner';
+            } else {
+                $member = $account->members->firstWhere('id', $userId);
+                $account->current_user_role = $member ? $member->pivot->role : 'viewer';
+            }
+            return $account;
+        });
+
+    return Inertia::render('Accounts', [
+        'accounts' => $accounts
+    ]);
+}
     public function store ( StoreAccountRequest $request)
     {
         $account  = $request->user()->accounts()->create($request->validated()) ;
