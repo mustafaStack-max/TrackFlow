@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AccountMemberController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProfileController;
@@ -42,5 +43,21 @@ Route::post('/transactions' , [TransactionController::class , 'store'])->middlew
 Route::put('/transactions/{transaction:id}' , [TransactionController::class , 'update'])->middleware('auth')->name('transactions.update')  ;
 Route::delete('/transactions/{transaction:id}' , [TransactionController::class , 'destroy'])->middleware('auth')->name('transactions.destroy')  ;
 
+
+
+
+Route::middleware(['auth'])->group(function () {
+    
+
+    Route::post('/accounts/{account}/members', [AccountMemberController::class, 'store'])
+        ->name('accounts.members.store');
+
+    Route::put('/accounts/{account}/members/{user}', [AccountMemberController::class, 'update'])
+        ->name('accounts.members.update');
+
+
+    Route::delete('/accounts/{account}/members/{user}', [AccountMemberController::class, 'destroy'])
+        ->name('accounts.members.destroy');
+});
 
 require __DIR__.'/auth.php';
