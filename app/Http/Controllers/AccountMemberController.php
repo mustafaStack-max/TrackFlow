@@ -12,14 +12,14 @@ class AccountMemberController extends Controller
     public function store(Request $request, Account $account)
     {
         $validated = $request->validate([
-            'user_i'       => 'required|email|exists:users,email',
+            'user_id'       => 'required|exists:users,id',
             'role'        => 'required|in:admin,editor,viewer',
             'spend_limit' => 'nullable|numeric|min:0',
         ]);
         $userToAdd = User::where('id', $validated['user_id'])->first();
 
         if ($account->members()->where('user_id', $userToAdd->id)->exists()) {
-            return back()->with('error', 'هذا المستخدم عضو بالفعل في هذا الحساب!');
+            return back()->withErrors(['user_id' => 'هذا المستخدم عضو بالفعل في هذا الحساب!']);
         }
         $account->members()->attach($userToAdd->id, [
             'role'        => $validated['role'],
