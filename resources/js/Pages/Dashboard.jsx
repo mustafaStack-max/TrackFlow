@@ -64,26 +64,62 @@ export default function Dashboard({
 
                 {/* ACCOUNTS QUICK VIEW */}
                 {accounts.length > 0 && (
-                    <div>
-                        <div className={`${F.head} text-[0.82rem] font-bold tracking-[2px] uppercase mb-2.5`} style={{ color: C.green }}>
-                            // الحسابات — نظرة سريعة
+    <div>
+        <div className={`${F.head} text-[0.82rem] font-bold tracking-[2px] uppercase mb-2.5`} style={{ color: C.green }}>
+            // الحسابات — نظرة سريعة
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {accounts.map((a) => {
+                const type  = String(a.type || 'other').toLowerCase();
+                const icon  = `/storage/icons/${type}.svg`;
+                const color = a.color_hex || C.green;
+
+                return (
+                    <Link href={route('accounts.index')} key={a.id}
+                        className="relative block p-3 border overflow-hidden transition-transform duration-150 hover:-translate-y-px"
+                        style={{ background: C.card, borderColor: C.b }}>
+
+                        {/* شريط اللون العلوي فقط */}
+                        <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: color }} />
+
+                        {/* الأيقونة + النوع */}
+                        <div className="flex items-center gap-2">
+                            <img src={icon} alt={type} className="w-6 h-6 shrink-0"
+                                onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/storage/icons/other.svg'; }} />
+                            <span className={`${F.mono} text-[0.62rem] font-bold tracking-[2px] uppercase truncate`} style={{ color: C.t2 }}>
+                                {type}
+                            </span>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                            {accounts.map((a) => (
-                                <Link href={route('accounts.index')} key={a.id}
-                                    className="relative block p-3 border overflow-hidden transition-transform duration-150 hover:-translate-y-px"
-                                    style={{ background: C.card, borderColor: C.b }}>
-                                    <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: a.color_hex || C.green }} />
-                                    <div className={`${F.head} text-[0.85rem] font-bold mt-1`} style={{ color: C.t1 }}>{a.name}</div>
-                                    <div className="flex items-baseline gap-1.5">
-                                        <span className={`${F.mono} text-[1.1rem]`} style={{ color: a.color_hex || C.green }}>{fmtMAD(a.balance)}</span>
-                                        <span className={`${F.mono} text-[0.6rem]`} style={{ color: C.t4 }}>MAD</span>
-                                    </div>
-                                </Link>
-                            ))}
+
+                        {/* اسم الحساب */}
+                        <div className={`${F.head} text-[0.85rem] font-bold mt-2 truncate`} style={{ color: C.t1 }}>
+                            {a.name}
                         </div>
-                    </div>
-                )}
+
+                        {/* الرصيد */}
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                            <span className={`${F.mono} text-[1.05rem] font-bold`} style={{ color }}>
+                                {fmtMAD(a.balance)}
+                            </span>
+                            <span className={`${F.mono} text-[0.55rem]`} style={{ color: C.t4 }}>MAD</span>
+                        </div>
+
+                        {/* الداخل / الخارج */}
+                        <div className="flex items-center gap-2.5 mt-1.5">
+                            <span className={`${F.mono} text-[0.65rem] font-bold`} style={{ color: C.green }}>
+                                {fmtMAD(a.income ?? 0)}+
+                            </span>
+                            <span className={`${F.mono} text-[0.65rem] font-bold`} style={{ color: C.red || '#ff5c5c' }}>
+                                {fmtMAD(a.expense ?? 0)}-
+                            </span>
+                        </div>
+                    </Link>
+                );
+            })}
+        </div>
+    </div>
+)}
 
                 {/* ADVANCED FLOW CHART */}
                 <AdvancedFlowChart series={series} defaultRange="30d" defaultGranularity="day" />
@@ -99,11 +135,11 @@ export default function Dashboard({
                 </div>
 
                 {/* BY ACCOUNT + HEATMAP */}
-                <div className="grid lg:grid-cols-2 gap-5">
+                <div className="grid lg:grid-cols-[1.4fr_1fr] gap-5" >
                     <Panel title="حسب الحساب" badge="BY ACCOUNT">
                         <AccountBarChart data={accountBreakdown} />
                     </Panel>
-                    <Panel title="خريطة حرارة الإنفاق" badge="SPENDING HEATMAP">
+                    <Panel title="خريطة حرارة الإنفاق" badge="LAST 6 MONTHS">
                         <SpendingHeatmap data={heatmap} />
                     </Panel>
                 </div>
