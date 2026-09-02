@@ -1,350 +1,235 @@
-import { Head, usePage } from '@inertiajs/react';
+// resources/js/Layouts/AuthenticatedLayout.jsx
+import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import Sidebar from '@/Components/Sidebar';
+import { COLORS as C, FONT as F, getTheme, toggleTheme } from '@/Components/Dashboard/theme';
 
-const MN_SHORT = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-function pad(n) {
-    return String(n).padStart(2, '0');
-}
+const IcoSearch = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><circle cx="9" cy="9" r="6" /><path d="M13.5 13.5L18 18" strokeLinecap="round" /></svg>);
+const IcoPlus = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><path d="M10 4v12M4 10h12" strokeLinecap="round" /></svg>);
+const IcoBell = (p) => (<svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M5 9a5 5 0 0 1 10 0c0 5 2 6 2 6H3s2-1 2-6" strokeLinejoin="round" /><path d="M8.5 17.5a1.7 1.7 0 0 0 3 0" strokeLinecap="round" /></svg>);
+const IcoSun = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="10" cy="10" r="3.5" /><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6L16 16M4 16l1.4-1.4M14.6 5.4L16 4" strokeLinecap="round" /></svg>);
+const IcoMoon = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M17 12.5A7.5 7.5 0 1 1 7.5 3 6 6 0 0 0 17 12.5z" strokeLinejoin="round" /></svg>);
+const IcoUser = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="10" cy="7" r="3.5" /><path d="M3.5 17c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5" strokeLinecap="round" /></svg>);
+const IcoGear = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="10" cy="10" r="2.4" /><path d="M10 2.5v2M10 15.5v2M17.5 10h-2M4.5 10h-2M15.3 4.7l-1.4 1.4M6.1 13.9l-1.4 1.4M15.3 15.3l-1.4-1.4M6.1 6.1L4.7 4.7" strokeLinecap="round" /></svg>);
+const IcoLogout = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 3H4v14h8M8 10h9M14 6.5L17.5 10 14 13.5" strokeLinecap="round" strokeLinejoin="round" /></svg>);
+const IcoChevron = (p) => (<svg width="10" height="10" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" {...p}><path d="M5 8l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>);
 
-/* same three families as the rest of the app */
-const F_MONO = "font-['Share_Tech_Mono',monospace]";
-const F_HEAD = "font-['Rajdhani',sans-serif]";
-
-/* ── inline icons (1:1 with the original sprite paths) ── */
-const IcoLogo = () => (
-    <svg width="38" height="38" viewBox="0 0 40 40">
-        <polygon points="20,2 37,11 37,29 20,38 3,29 3,11" fill="none" stroke="#00e676" strokeWidth="1.3" />
-        <polygon points="20,8 31,14 31,26 20,32 9,26 9,14" fill="none" stroke="#00e676" strokeWidth="0.6" opacity="0.35" />
-        <circle cx="20" cy="20" r="4" fill="none" stroke="#00e676" strokeWidth="1.3" />
-        <circle cx="20" cy="20" r="1.2" fill="#00e676" />
-        <line x1="20" y1="16" x2="20" y2="8" stroke="#00e676" strokeWidth="0.8" opacity="0.5" />
-    </svg>
-);
-const IcoPlus = (p) => (
-    <svg width="13" height="13" viewBox="0 0 20 20" {...p}>
-        <line x1="10" y1="3" x2="10" y2="17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        <line x1="3" y1="10" x2="17" y2="10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-);
-const IcoBell = (p) => (
-    <svg width="16" height="16" viewBox="0 0 20 20" {...p}>
-        <path d="M10 2a6 6 0 016 6c0 3 1 4 2 5H2c1-1 2-2 2-5a6 6 0 016-6z" fill="none" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M8 17a2 2 0 004 0" fill="none" stroke="currentColor" strokeWidth="1.3" />
-    </svg>
-);
-const IcoMoon = (p) => (
-    <svg width="15" height="15" viewBox="0 0 20 20" {...p}>
-        <path d="M17 13A7 7 0 017 3a8 8 0 1010 10z" fill="none" stroke="currentColor" strokeWidth="1.4" />
-    </svg>
-);
-const IcoSun = (p) => (
-    <svg width="15" height="15" viewBox="0 0 20 20" {...p}>
-        <circle cx="10" cy="10" r="4" fill="none" stroke="currentColor" strokeWidth="1.4" />
-        <g stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-            <line x1="10" y1="2" x2="10" y2="4" /><line x1="10" y1="16" x2="10" y2="18" />
-            <line x1="2" y1="10" x2="4" y2="10" /><line x1="16" y1="10" x2="18" y2="10" />
-            <line x1="4.2" y1="4.2" x2="5.6" y2="5.6" /><line x1="14.4" y1="14.4" x2="15.8" y2="15.8" />
-            <line x1="4.2" y1="15.8" x2="5.6" y2="14.4" /><line x1="14.4" y1="5.6" x2="15.8" y2="4.2" />
-        </g>
-    </svg>
-);
-const IcoFullscreen = (p) => (
-    <svg width="14" height="14" viewBox="0 0 20 20" {...p}>
-        <path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-);
-const IcoExitFs = (p) => (
-    <svg width="14" height="14" viewBox="0 0 20 20" {...p}>
-        <path d="M8 3v5H3M12 3v5h5M17 12h-5v5M3 12h5v5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-);
-
-export default function AuthenticatedLayout({
-    children,
-    dbOnline = true,
-    onAddTransaction,
-    onMonthChange,
-    onDateRange,
-    notifications = [],
-    onClearNotifications,
-}) {
-    const [now, setNow] = useState(new Date());
-    const [isLight, setIsLight] = useState(false);
-    const [monthValue, setMonthValue] = useState('current');
-    const [drOpen, setDrOpen] = useState(false);
+export default function AuthenticatedLayout({ children, onAddTransaction, notifications = [], onClearNotifications }) {
+    const { props } = usePage();
+    const user = props.auth?.user ?? props.user ?? null;
+    const [theme, setTheme] = useState(getTheme());
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
-    const [notifDot, setNotifDot] = useState(notifications.length > 0);
-    const [preset, setPreset] = useState(null);
-    const [drFrom, setDrFrom] = useState('');
-    const [drTo, setDrTo] = useState('');
-    const drWrapRef = useRef(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [searchOpen, setSearchOpen] = useState(false);
     const notifRef = useRef(null);
+    const menuRef = useRef(null);
+    const searchRef = useRef(null);
 
     useEffect(() => {
-        const id = setInterval(() => setNow(new Date()), 1000);
-        return () => clearInterval(id);
-    }, []);
-
-    useEffect(() => {
-        const saved = localStorage.getItem('tf_theme');
-        if (saved === 'light') setIsLight(true);
-    }, []);
-
-    useEffect(() => {
-        const onClick = (e) => {
-            if (drWrapRef.current && !drWrapRef.current.contains(e.target)) setDrOpen(false);
+        const down = (e) => {
             if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
+            if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
         };
-        const onKey = (e) => {
-            if (e.key === 'Escape') {
-                setDrOpen(false);
-                setNotifOpen(false);
-            }
-        };
-        document.addEventListener('click', onClick);
-        document.addEventListener('keydown', onKey);
-        return () => {
-            document.removeEventListener('click', onClick);
-            document.removeEventListener('keydown', onKey);
-        };
+        document.addEventListener('mousedown', down);
+        return () => document.removeEventListener('mousedown', down);
     }, []);
 
-    const timeLabel = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    const dateLabel = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
+    useEffect(() => {
+        const onKey = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                setSearchOpen(true);
+                requestAnimationFrame(() => searchRef.current?.focus());
+            }
+            if (e.key === 'Escape') { setSearchOpen(false); setNotifOpen(false); setMenuOpen(false); }
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, []);
 
-    const monthOptions = Array.from({ length: 6 }, (_, i) => {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        return { value: `${d.getFullYear()}-${pad(d.getMonth() + 1)}`, label: `${MN_SHORT[d.getMonth()]} ${d.getFullYear()}` };
-    });
-
-    const handleMonthSelect = (e) => {
-        const v = e.target.value;
-        setMonthValue(v);
-        if (v === 'custom') {
-            setDrOpen(true);
-            return;
-        }
-        const [year, month] = v.split('-').map(Number);
-        onMonthChange?.({ year, month });
+    /* ★ تبديل الثيم: حفظ + إعادة تحميل حتى تقرأ كل المكوّنات اللوحة الجديدة */
+    const onToggleTheme = () => {
+        const next = toggleTheme();
+        setTheme(next);
+        window.location.reload();
     };
 
-    const applyPreset = (days) => {
-        setPreset(days);
-        const to = new Date();
-        const from = days === 0 ? new Date(to.getFullYear(), to.getMonth(), 1) : new Date(Date.now() - days * 86400000);
-        setDrFrom(from.toISOString().split('T')[0]);
-        setDrTo(to.toISOString().split('T')[0]);
-    };
+    const logout = () => { router.post(route('logout')); };
 
-    const applyDateRange = () => {
-        onDateRange?.({ from: drFrom, to: drTo });
-        setDrOpen(false);
-    };
-
-    const clearDateRange = () => {
-        setDrFrom('');
-        setDrTo('');
-        setPreset(null);
-        setMonthValue('current');
-        setDrOpen(false);
-    };
-
-    const toggleTheme = () => {
-        setIsLight((v) => {
-            localStorage.setItem('tf_theme', !v ? 'light' : 'dark');
-            return !v;
-        });
-    };
-
-    const toggleNotifPanel = () => {
-        setNotifOpen((v) => {
-            if (!v) setNotifDot(false);
-            return !v;
-        });
-    };
-
-    const toggleFullscreen = () => {
-        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
-        else document.exitFullscreen?.();
-    };
+    const initials = String(user?.name ?? 'U').trim().split(/\s+/).slice(0, 2).map((n) => n[0]).join('').toUpperCase() || 'U';
 
     return (
-        <div className={isLight ? 'min-h-screen bg-[#f0f4f2]' : 'min-h-screen bg-[#040507]'}>
-            <Head>
+        <div dir="rtl" className={`${F.ar} min-h-screen`} style={{ background: C.void, color: C.t1 }}>
+            <Head title="TrackFlow">
+                {/* ★ الخطوط — كانت ناقصة */}
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link
-                    href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"
-                    rel="stylesheet"
-                />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
             </Head>
 
-            {/* TOPBAR */}
-            <header
-                className={`relative flex items-center justify-between gap-3 h-[58px] px-[22px] sticky top-0 z-[200] backdrop-blur-md border-b ${F_MONO} ` +
-                    (isLight ? 'bg-[rgba(240,244,242,0.95)] border-[rgba(0,150,80,0.18)] text-[#00a854]' : 'bg-[rgba(8,12,16,0.95)] border-[rgba(0,230,118,0.13)] text-[#00e676]')
-                }
-            >
-                {/* RIGHT ACTIONS */}
-                <div className="flex items-center gap-2">
-                    {/* MONTH / DATE RANGE */}
-                    <div className="relative" ref={drWrapRef}>
-                        <select
-                            value={monthValue}
-                            onChange={handleMonthSelect}
-                            className={`hidden sm:block border px-[14px] py-[6px] text-[0.72rem] tracking-[1px] outline-none cursor-pointer ${F_MONO} ` +
-                                (isLight ? 'bg-white border-[rgba(0,150,80,0.18)] text-[#007a3d]' : 'bg-[#101820] border-[rgba(0,230,118,0.13)] text-[#00e676]')
-                            }
-                        >
-                            {monthOptions.map((m, i) => (
-                                <option key={m.value} value={i === 0 ? 'current' : m.value}>{m.label}</option>
-                            ))}
-                            <option value="custom">📅 نطاق مخصص...</option>
-                        </select>
+            {sidebarOpen && (
+                <button type="button" aria-label="إغلاق" onClick={() => setSidebarOpen(false)}
+                    className="fixed inset-0 z-[190] bg-black/60 lg:hidden" />
+            )}
+            <Sidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
 
-                        {drOpen && (
-                            <div className="absolute left-0 z-[400] mt-2 w-[300px] bg-[#101820] border border-[rgba(0,230,118,0.45)] p-4 shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
-                                <div className={`${F_MONO} text-[0.6rem] tracking-[2px] text-[#5a8068] mb-2.5`}>// CUSTOM DATE RANGE</div>
-                                <div className="grid grid-cols-2 gap-2.5 mb-3">
-                                    <div>
-                                        <div className={`${F_MONO} text-[0.6rem] text-[#5a8068] mb-1`}>من تاريخ</div>
-                                        <input type="date" value={drFrom} onChange={(e) => setDrFrom(e.target.value)} className="w-full bg-[#0c1117] border border-[rgba(0,230,118,0.13)] px-2.5 py-1.5 text-[#e8f5ef] text-[0.8rem] outline-none focus:border-[rgba(0,230,118,0.45)]" />
-                                    </div>
-                                    <div>
-                                        <div className={`${F_MONO} text-[0.6rem] text-[#5a8068] mb-1`}>إلى تاريخ</div>
-                                        <input type="date" value={drTo} onChange={(e) => setDrTo(e.target.value)} className="w-full bg-[#0c1117] border border-[rgba(0,230,118,0.13)] px-2.5 py-1.5 text-[#e8f5ef] text-[0.8rem] outline-none focus:border-[rgba(0,230,118,0.45)]" />
-                                    </div>
-                                </div>
-                                <div className="flex gap-1.5 mb-2.5">
-                                    {[{ d: 7, l: '7 أيام' }, { d: 30, l: '30 يوم' }, { d: 90, l: '3 أشهر' }, { d: 0, l: 'هذا الشهر' }].map((p) => (
-                                        <button
-                                            key={p.d}
-                                            type="button"
-                                            onClick={() => applyPreset(p.d)}
-                                            className={`${F_HEAD} text-[0.7rem] font-semibold px-2.5 py-1 border transition-colors ` +
-                                                (preset === p.d ? 'border-[#00e676] text-[#00e676] bg-[rgba(0,230,118,0.07)]' : 'border-[rgba(0,230,118,0.13)] text-[#a8c4b0] hover:border-[rgba(0,230,118,0.45)]')
-                                            }
-                                        >
-                                            {p.l}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="flex gap-2">
-                                    <button type="button" onClick={applyDateRange} className={`${F_HEAD} flex-1 border border-[#00e676] text-[#00e676] py-2 text-[0.75rem] font-bold tracking-[2px] uppercase hover:bg-[#00e676] hover:text-[#040507] transition-colors`}>
-                                        // تطبيق //
-                                    </button>
-                                    <button type="button" onClick={clearDateRange} className={`${F_HEAD} border border-[rgba(255,61,90,0.3)] text-[#ff3d5a] px-3 py-2 text-[0.75rem] hover:bg-[rgba(255,61,90,0.1)] transition-colors`}>
-                                        ✕
-                                    </button>
-                                </div>
-                            </div>
+            <div className="min-h-screen transition-all duration-300 lg:mr-[240px] [.sidebar-collapsed_&]:lg:mr-[68px]">
+                {/* HEADER */}
+                <header className="sticky top-0 z-[150] flex h-14 items-center gap-3 border-b px-4 lg:px-6 backdrop-blur-md"
+                    style={{ borderColor: C.b, background: `${C.card}E6` }}>
+                    <button type="button" onClick={() => setSidebarOpen(true)} aria-label="القائمة"
+                        className="flex h-9 w-9 items-center justify-center border lg:hidden" style={{ borderColor: C.b, color: C.t3 }}>
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M3 6h14M3 10h14M3 14h14" strokeLinecap="round" /></svg>
+                    </button>
+
+                    <button type="button" onClick={() => { setSearchOpen(true); requestAnimationFrame(() => searchRef.current?.focus()); }}
+                        className="hidden md:flex h-9 flex-1 max-w-xl items-center gap-2.5 border px-3 transition-colors hover:bg-white/[0.04]"
+                        style={{ borderColor: C.b, background: C.card2 }}>
+                        <span style={{ color: C.t4 }}><IcoSearch /></span>
+                        <span className={`${F.ar} flex-1 text-start text-[0.72rem]`} style={{ color: C.t4 }}>ابحث عن معاملة، حساب أو تقرير...</span>
+                        <kbd className={`${F.mono} text-[0.55rem] tracking-[1px] border px-1.5 py-0.5`} style={{ borderColor: C.b, color: C.t4 }}>CTRL K</kbd>
+                    </button>
+
+                    <div className="ms-auto flex items-center gap-2">
+                        {onAddTransaction && (
+                            <button type="button" onClick={onAddTransaction}
+                                className="flex h-9 items-center gap-2 border px-3 transition-all hover:brightness-125"
+                                style={{ borderColor: `${C.green}66`, color: C.green, background: C.greenTrace }}>
+                                <IcoPlus />
+                                <span className={`${F.ar} hidden sm:inline text-[0.72rem] font-bold`}>تسجيل عملية</span>
+                            </button>
                         )}
-                    </div>
 
-                    {/* NOTIFICATIONS */}
-                    <div className="relative" ref={notifRef}>
-                        <button
-                            type="button"
-                            title="الإشعارات"
-                            onClick={toggleNotifPanel}
-                            className={`relative w-[34px] h-[34px] flex items-center justify-center border transition-colors ` +
-                                (isLight ? 'border-[rgba(0,150,80,0.18)] text-[#3a5c45] hover:border-[rgba(0,150,80,0.5)] hover:text-[#00a854]' : 'border-[rgba(0,230,118,0.13)] text-[#a8c4b0] hover:border-[rgba(0,230,118,0.45)] hover:text-[#00e676]')
-                            }
-                        >
-                            <IcoBell />
-                            {notifDot && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#ff3d5a] border border-black animate-pulse" />}
+                        {/* إشعارات */}
+                        <div className="relative" ref={notifRef}>
+                            <button type="button" aria-label="الإشعارات" title="الإشعارات" onClick={() => setNotifOpen(v => !v)}
+                                className="relative flex h-9 w-9 items-center justify-center border transition-colors hover:bg-white/[0.05]"
+                                style={{ borderColor: C.b, color: C.t3 }}>
+                                <IcoBell />
+                                {notifications.length > 0 && <span className="absolute -top-1 -left-1 h-2 w-2" style={{ background: C.green }} />}
+                            </button>
+                            {notifOpen && (
+                                <div className="absolute left-0 top-11 z-[300] w-[340px] border shadow-2xl" style={{ background: C.card, borderColor: C.bHot }}>
+                                    <div className="flex items-center justify-between border-b px-4 py-2.5" style={{ borderColor: C.b }}>
+                                        <span className={`${F.mono} text-[0.62rem] tracking-[2px]`} style={{ color: C.green }}>// الإشعارات</span>
+                                        {notifications.length > 0 && (
+                                            <button type="button" onClick={() => { onClearNotifications?.(); setNotifOpen(false); }}
+                                                className={`${F.mono} text-[0.58rem]`} style={{ color: C.t4 }}>مسح الكل</button>
+                                        )}
+                                    </div>
+                                    {notifications.length === 0 ? (
+                                        <div className="px-6 py-8 text-center">
+                                            <div className={`${F.mono} text-[0.65rem] tracking-[1px]`} style={{ color: C.t4 }}>// لا توجد إشعارات جديدة //</div>
+                                        </div>
+                                    ) : (
+                                        <div className="max-h-[320px] overflow-y-auto">
+                                            {notifications.slice(0, 10).map((n, i) => (
+                                                <div key={n.id ?? i} className="flex gap-2.5 border-b px-4 py-3 last:border-b-0" style={{ borderColor: C.b }}>
+                                                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0" style={{ background: C.green }} />
+                                                    <div className="min-w-0">
+                                                        <div className={`${F.ar} text-[0.72rem] leading-5`} style={{ color: C.t2 }}>{n.message}</div>
+                                                        {n.created_at && <div className={`${F.mono} mt-1 text-[0.55rem]`} style={{ color: C.t4 }}>{n.created_at}</div>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ★ الثيم — يعمل فعليًا */}
+                        <button type="button" onClick={onToggleTheme}
+                            aria-label={theme === 'dark' ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'}
+                            title={theme === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'}
+                            className="flex h-9 w-9 items-center justify-center border transition-colors hover:bg-white/[0.05]"
+                            style={{ borderColor: C.b, color: theme === 'dark' ? C.amber : C.cyan }}>
+                            {theme === 'dark' ? <IcoSun /> : <IcoMoon />}
                         </button>
 
-                        {notifOpen && (
-                            <div className="absolute left-0 z-[400] mt-2 w-64 bg-[#101820] border border-[rgba(0,230,118,0.45)] py-2 text-[0.72rem] shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
-                                <div className="flex justify-between items-center border-b border-[rgba(0,230,118,0.13)] px-3 pb-2">
-                                    <span className={`${F_HEAD} text-[#00e676] font-bold tracking-[1px]`}>الإشعارات</span>
-                                    <button type="button" onClick={() => { onClearNotifications?.(); setNotifDot(false); }} className="text-[#5a8068] text-[0.7rem]">مسح الكل</button>
+                        {/* ★ قائمة الحساب — تعمل فعليًا */}
+                        <div className="relative" ref={menuRef}>
+                            <button type="button" onClick={() => setMenuOpen(v => !v)} aria-label="حسابي"
+                                className="flex h-9 items-center gap-2 border px-2 transition-colors hover:bg-white/[0.05]"
+                                style={{ borderColor: menuOpen ? `${C.green}66` : C.b, background: C.greenTrace }}>
+                                <span className="flex h-6 w-6 items-center justify-center border"
+                                    style={{ borderColor: `${C.green}55`, color: C.green }}>
+                                    <span className={`${F.mono} text-[0.55rem] font-bold`}>{initials}</span>
+                                </span>
+                                <span className={`${F.ar} hidden sm:block text-[0.7rem] font-semibold max-w-[90px] truncate`} style={{ color: C.t1 }}>
+                                    {user?.name ?? 'حسابي'}
+                                </span>
+                                <span style={{ color: C.t4 }}><IcoChevron /></span>
+                            </button>
+
+                            {menuOpen && (
+                                <div className="absolute left-0 top-11 z-[300] w-[220px] border shadow-2xl" style={{ background: C.card, borderColor: C.bHot }}>
+                                    <div className="border-b px-4 py-3" style={{ borderColor: C.b }}>
+                                        <div className={`${F.ar} text-[0.75rem] font-bold truncate`} style={{ color: C.t1 }}>{user?.name ?? '—'}</div>
+                                        <div className={`${F.mono} text-[0.58rem] truncate mt-0.5`} style={{ color: C.t4 }}>{user?.email ?? '—'}</div>
+                                    </div>
+                                    <div className="p-1.5">
+                                        {route().has('profile.edit') && (
+                                            <button type="button" onClick={() => router.visit(route('profile.edit'))}
+                                                className={`flex w-full items-center gap-2.5 px-2.5 py-2 text-start transition-colors hover:bg-white/[0.05]`}>
+                                                <span style={{ color: C.t3 }}><IcoUser /></span>
+                                                <span className={`${F.ar} text-[0.72rem]`} style={{ color: C.t2 }}>الملف الشخصي</span>
+                                            </button>
+                                        )}
+                                        {route().has('profile.edit') && (
+                                            <button type="button" onClick={() => router.visit(route('profile.edit'))}
+                                                className="flex w-full items-center gap-2.5 px-2.5 py-2 text-start transition-colors hover:bg-white/[0.05]">
+                                                <span style={{ color: C.t3 }}><IcoGear /></span>
+                                                <span className={`${F.ar} text-[0.72rem]`} style={{ color: C.t2 }}>إعدادات الحساب</span>
+                                            </button>
+                                        )}
+                                        <div className="my-1.5 border-t" style={{ borderColor: C.b }} />
+                                        <button type="button" onClick={logout}
+                                            className="flex w-full items-center gap-2.5 px-2.5 py-2 text-start transition-colors hover:bg-white/[0.05]">
+                                            <span style={{ color: C.red }}><IcoLogout /></span>
+                                            <span className={`${F.ar} text-[0.72rem]`} style={{ color: C.red }}>تسجيل الخروج</span>
+                                        </button>
+                                    </div>
                                 </div>
-                                {notifications.length === 0 ? (
-                                    <div className={`${F_MONO} text-center py-6 text-[0.68rem] text-[#2d4a38] tracking-[2px]`}>// لا توجد إشعارات //</div>
-                                ) : (
-                                    notifications.slice(0, 10).map((n, i) => (
-                                        <div key={i} className="border-b border-[rgba(0,230,118,0.05)] px-3 py-2 text-[#e8f5ef]/80 last:border-0">
-                                            {n.message}
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* THEME TOGGLE */}
-                    <button
-                        type="button"
-                        title="تبديل المظهر"
-                        onClick={toggleTheme}
-                        className={`w-[34px] h-[34px] flex items-center justify-center border transition-colors ` +
-                            (isLight ? 'border-[rgba(0,150,80,0.18)] text-[#3a5c45] hover:border-[rgba(0,150,80,0.5)] hover:text-[#00a854]' : 'border-[rgba(0,230,118,0.13)] text-[#a8c4b0] hover:border-[rgba(0,230,118,0.45)] hover:text-[#00e676]')
-                        }
-                    >
-                        {isLight ? <IcoSun /> : <IcoMoon />}
-                    </button>
-
-                    {/* FULLSCREEN */}
-                    <button
-                        type="button"
-                        title="ملء الشاشة"
-                        onClick={toggleFullscreen}
-                        className={`hidden sm:flex w-[34px] h-[34px] items-center justify-center border transition-colors ` +
-                            (isLight ? 'border-[rgba(0,150,80,0.18)] text-[#3a5c45] hover:border-[rgba(0,150,80,0.5)] hover:text-[#00a854]' : 'border-[rgba(0,230,118,0.13)] text-[#a8c4b0] hover:border-[rgba(0,230,118,0.45)] hover:text-[#00e676]')
-                        }
-                    >
-                        {document.fullscreenElement ? <IcoExitFs /> : <IcoFullscreen />}
-                    </button>
-
-                    {/* LOG TRANSACTION */}
-                    <button
-                        type="button"
-                        onClick={onAddTransaction}
-                        className={`${F_HEAD} flex items-center gap-1.5 border border-[#00e676] px-[18px] py-[7px] text-[#00e676] text-[0.82rem] font-bold tracking-[2px] uppercase transition-colors hover:bg-[#00e676] hover:text-[#040507]`}
-                    >
-                        <IcoPlus />
-                        <span className="hidden sm:inline">سجّل عملية</span>
-                    </button>
-                </div>
-
-                {/* SYSTEM STATUS */}
-                <div className={`hidden md:flex items-center gap-2 text-[0.72rem] tracking-[1.5px] ${isLight ? 'text-[#3a5c45]' : 'text-[#a8c4b0]'}`}>
-                    <span className={`w-[7px] h-[7px] rounded-full ${dbOnline ? 'bg-[#00e676] animate-pulse' : 'bg-[#ff3d5a]'}`} style={dbOnline ? { boxShadow: '0 0 10px #00e676' } : undefined} />
-                    <span>{timeLabel}</span>
-                    <span className="opacity-40">//</span>
-                    <span>{dateLabel}</span>
-                    <span className="opacity-40">//</span>
-                    <span className="font-semibold tracking-[1px]" style={{ color: dbOnline ? '#00e676' : '#ff3d5a' }}>
-                        {dbOnline ? 'DB ONLINE' : 'OFFLINE'}
-                    </span>
-                </div>
-
-                {/* LOGO */}
-                <div className="flex items-center gap-3">
-                    <IcoLogo />
-                    <div>
-                        <div className={`${F_HEAD} text-[1.2rem] font-bold tracking-[4px] ${isLight ? 'text-[#1a2e22]' : 'text-[#e8f5ef]'}`}>
-                            TRACK<em className="not-italic text-[#00e676]">FLOW</em>
-                        </div>
-                        <div className={`${F_MONO} text-[0.58rem] tracking-[2px] hidden sm:block ${isLight ? 'text-[#a8c4b0]' : 'text-[#2d4a38]'}`}>
-                            MYSQL // FULL ANALYTICS // v5.0
+                            )}
                         </div>
                     </div>
-                </div>
+                </header>
 
-                <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-[#00e676]/60 to-transparent" />
-            </header>
-
-            {/* MAIN CONTENT + SIDEBAR — sidebar mirrored to the other edge of the screen */}
-            <div className="flex" style={{ minHeight: 'calc(100vh - 58px)' }}>
-                <main className={`flex-1 min-w-0 p-[22px] flex flex-col gap-5 ${isLight ? 'bg-[#e4ede8]' : 'bg-[#080c10]'}`}>
-                    {children}
+                {/* PAGE */}
+                <main className="p-4 lg:p-6">
+                    <div className="mx-auto w-full max-w-[1600px]">{children}</div>
                 </main>
-                <Sidebar />
             </div>
+
+            {/* SEARCH MODAL */}
+            {searchOpen && (
+                <div className="fixed inset-0 z-[500] flex items-start justify-center bg-black/70 px-4 pt-[12vh]"
+                    onMouseDown={(e) => { if (e.target === e.currentTarget) setSearchOpen(false); }}>
+                    <div className="w-full max-w-[600px] border shadow-2xl" style={{ background: C.card, borderColor: C.bHot }}>
+                        <div className="flex items-center gap-3 border-b px-4" style={{ borderColor: C.b }}>
+                            <span style={{ color: C.t4 }}><IcoSearch /></span>
+                            <input ref={searchRef} autoFocus type="text" placeholder="ابحث في TrackFlow..."
+                                className={`${F.ar} h-12 flex-1 bg-transparent text-[0.8rem] outline-none`} style={{ color: C.t1 }} />
+                            <button type="button" onClick={() => setSearchOpen(false)} className={`${F.mono} text-[0.58rem] border px-1.5 py-0.5`} style={{ borderColor: C.b, color: C.t4 }}>ESC</button>
+                        </div>
+                        <div className="p-4">
+                            <div className={`${F.mono} mb-2.5 text-[0.58rem] tracking-[2px]`} style={{ color: C.t4 }}>// وصول سريع</div>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                                {['آخر المعاملات', 'الحسابات', 'الميزانية الشهرية', 'التحليلات'].map((item) => (
+                                    <button key={item} type="button"
+                                        className={`${F.ar} border px-3 py-2.5 text-start text-[0.72rem] transition-colors hover:bg-white/[0.04]`}
+                                        style={{ borderColor: C.b, color: C.t2, background: C.card2 }}>
+                                        {item}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

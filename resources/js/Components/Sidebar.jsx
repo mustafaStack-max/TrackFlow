@@ -1,347 +1,203 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, usePage } from '@inertiajs/react';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
-import { fmtMAD } from '@/Components/Dashboard/format';
-import DonutChart from '@/Components/Dashboard/DonutChart';
 
-/* ── Legacy TrackFlow icon set, converted to React/SVG ── */
-const IcoGrid = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><rect x="2" y="2" width="7" height="7" rx="1"/><rect x="11" y="2" width="7" height="7" rx="1"/><rect x="2" y="11" width="7" height="7" rx="1"/><rect x="11" y="11" width="7" height="7" rx="1"/></svg>;
-const IcoDatabase = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><ellipse cx="10" cy="5" rx="7" ry="2.6"/><path d="M3 5v4.5c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V5"/><path d="M3 9.5V14c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V9.5"/></svg>;
-const IcoSwap = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><path d="M3 7h11M14 7l-3-3M14 7l-3 3" strokeLinecap="round" strokeLinejoin="round"/><path d="M17 13H6M6 13l3-3M6 13l3 3" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-const IcoChart = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><path d="M2 16.5V4M2 16.5h16" strokeLinecap="round"/><path d="m5 13 3-4 3 2 5-6" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-const IcoGauge = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><circle cx="10" cy="10" r="7.5"/><path d="M10 10l3.2-3.2" strokeLinecap="round"/><circle cx="10" cy="10" r="1.1" fill="currentColor" stroke="none"/></svg>;
-const IcoStar = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" {...p}><path d="M10 2l2.2 5.4L18 8l-4.4 3.8L15 18l-5-3.3L5 18l1.4-6.2L2 8l5.8-.6z" strokeLinejoin="round"/></svg>;
-const IcoCompass = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><circle cx="10" cy="10" r="7.5"/><path d="M13 7l-2 5-4 1 2-5z" strokeLinejoin="round"/></svg>;
-const IcoTransfer = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><path d="M2 6.5h16M14 2.5l4 4-4 4" strokeLinecap="round" strokeLinejoin="round"/><path d="M18 13.5H2M6 9.5l-4 4 4 4" strokeLinecap="round" strokeLinejoin="round"/></svg>;
-const IcoClock = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><circle cx="10" cy="10" r="7.5"/><path d="M10 6v4l2.6 1.6" strokeLinecap="round"/></svg>;
-const IcoTarget = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><circle cx="10" cy="10" r="7.5"/><circle cx="10" cy="10" r="4"/><circle cx="10" cy="10" r=".9" fill="currentColor" stroke="none"/></svg>;
-const IcoTag = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><path d="M2 2h7l9 9-7 7-9-9V2z" strokeLinejoin="round"/><circle cx="6" cy="6" r="1.1" fill="currentColor" stroke="none"/></svg>;
-const IcoDoc = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><path d="M5 2h7l3 3v13H5z" strokeLinejoin="round"/><path d="M8 9h4M8 12h4M8 15h2" strokeLinecap="round"/></svg>;
-const IcoUser = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><circle cx="10" cy="6.5" r="3"/><path d="M4 17c.8-3 2.8-4.5 6-4.5s5.2 1.5 6 4.5" strokeLinecap="round"/></svg>;
-const IcoSettings = p => <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.35" {...p}><path d="M8.3 2.8h3.4l.6 2a5.5 5.5 0 0 1 1.3.8l2-.6 1.7 3-1.5 1.4a5.7 5.7 0 0 1 0 1.6l1.5 1.4-1.7 3-2-.6a5.5 5.5 0 0 1-1.3.8l-.6 2H8.3l-.6-2a5.5 5.5 0 0 1-1.3-.8l-2 .6-1.7-3 1.5-1.4a5.7 5.7 0 0 1 0-1.6L2.7 8l1.7-3 2 .6a5.5 5.5 0 0 1 1.3-.8l.6-2Z" strokeLinejoin="round"/><circle cx="10" cy="10.2" r="2.1"/></svg>;
-const IcoChevron = p => <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" {...p}><path d="M7.5 4.5l6 5.5-6 5.5" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+import { Link, usePage } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
 
 const NAV_GROUPS = [
     {
-        title: 'NAVIGATION',
+        title: 'الرئيسية',
         items: [
-            { key: 'dashboard', label: 'لوحة التحكم', icon: IcoGrid, routeName: 'dashboard' },
-            { key: 'accounts', label: 'الحسابات', icon: IcoDatabase, routeName: 'accounts.index', countKey: 'accounts', badgeColor: C.cyan },
-            { key: 'transactions', label: 'المعاملات', icon: IcoSwap, routeName: 'transactions.index', countKey: 'transactions', badgeColor: C.green },
-            { key: 'analytics', label: 'التحليلات', icon: IcoChart, routeName: 'analytics.index' },
+            { key: 'dashboard', label: 'لوحة التحكم', routeName: 'dashboard', icon: 'grid' },
+            { key: 'transactions', label: 'المعاملات', routeName: 'transactions.index', icon: 'receipt', countKey: 'transactions' },
+            { key: 'accounts', label: 'الحسابات', routeName: 'accounts.index', icon: 'wallet', countKey: 'accounts' },
+            { key: 'analytics', label: 'التحليلات', routeName: 'analytics.index', icon: 'chart' },
         ],
     },
     {
-        title: 'TOOLS',
+        title: 'الإدارة المالية',
         items: [
-            { key: 'budgets', label: 'الميزانيات', icon: IcoChart, routeName: 'budgets.index' },
-            { key: 'budget', label: 'الميزانية', icon: IcoGauge, routeName: 'budget.index' },
-            { key: 'insights', label: 'الرؤى التحليلية', icon: IcoStar, routeName: 'insights.index' },
-            { key: 'freedom', label: 'الحرية المالية', icon: IcoCompass, routeName: 'financial-freedom.index' },
-            { key: 'transfer', label: 'تحويل بين الحسابات', icon: IcoTransfer, routeName: 'transfers.create' },
-            { key: 'subscriptions', label: 'الاشتراكات والفواتير', icon: IcoClock, routeName: 'subscriptions.index', countKey: 'subscriptions', badgeColor: C.purple },
-            { key: 'goals', label: 'الأهداف المالية', icon: IcoTarget, routeName: 'goals.index', countKey: 'goals', badgeColor: C.amber },
-            { key: 'categories', label: 'إدارة التصنيفات', icon: IcoTag, routeName: 'categories.index' },
-            { key: 'audit', label: 'سجل العمليات', icon: IcoDoc, routeName: 'audit.index' },
+            { key: 'budgets', label: 'الميزانيات', routeName: 'budgets.index', icon: 'card' },
+            { key: 'goals', label: 'الأهداف المالية', routeName: 'goals.index', icon: 'target', countKey: 'goals' },
+            { key: 'categories', label: 'التصنيفات', routeName: 'categories.index', icon: 'tag' },
+            { key: 'audit', label: 'سجل العمليات', routeName: 'audit.index', icon: 'clock' },
         ],
     },
 ];
 
-const HEADER_H = 58;
-const SCROLL_CLS =
-    '[&::-webkit-scrollbar]:w-[5px] [&::-webkit-scrollbar-track]:bg-transparent ' +
-    '[&::-webkit-scrollbar-thumb]:bg-[rgba(0,230,118,0.22)] ' +
-    '[&::-webkit-scrollbar-thumb:hover]:bg-[rgba(0,230,118,0.45)] ' +
-    '[&::-webkit-scrollbar-thumb]:rounded-full [scrollbar-width:thin] ' +
-    '[scrollbar-color:rgba(0,230,118,0.22)_transparent]';
+/* أيقونات خطية بنفس روح اللوحة */
+const ICONS = {
+    grid: (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="3" y="3" width="6" height="8" rx="0.5" /><rect x="11" y="3" width="6" height="4" rx="0.5" /><rect x="11" y="9" width="6" height="8" rx="0.5" /><rect x="3" y="13" width="6" height="4" rx="0.5" /></svg>),
+    receipt: (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M5 2v16l2.5-1.5L10 18l2.5-1.5L15 18V2l-2.5 1.5L10 2 7.5 3.5 5 2z" strokeLinejoin="round" /><path d="M8 7h4M8 10.5h4" strokeLinecap="round" /></svg>),
+    wallet: (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="2" y="5" width="16" height="11" rx="1" /><path d="M2 8.5h16" /><circle cx="14.5" cy="12" r="1" fill="currentColor" stroke="none" /></svg>),
+    chart: (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M3 17V9M8 17V4M13 17v-6M18 17V7" strokeLinecap="round" /></svg>),
+    card: (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="2" y="4" width="16" height="12" rx="1" /><path d="M2 8h16M5 12.5h4" strokeLinecap="round" /></svg>),
+    target: (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="10" cy="10" r="7.5" /><circle cx="10" cy="10" r="4" /><circle cx="10" cy="10" r="1" fill="currentColor" stroke="none" /></svg>),
+    tag: (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M17.5 10.5l-7 7L3 10V3h7l7.5 7.5z" strokeLinejoin="round" /><circle cx="7" cy="7" r="1.2" fill="currentColor" stroke="none" /></svg>),
+    clock: (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="10" cy="10" r="7.5" /><path d="M10 6v4l2.5 2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+    help: (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="10" cy="10" r="7.5" /><path d="M8 8a2 2 0 1 1 2.8 1.8c-.6.3-.8.7-.8 1.4" strokeLinecap="round" /><circle cx="10" cy="13.8" r="0.9" fill="currentColor" stroke="none" /></svg>),
+    gear: (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="10" cy="10" r="2.4" /><path d="M10 2.5v2M10 15.5v2M17.5 10h-2M4.5 10h-2M15.3 4.7l-1.4 1.4M6.1 13.9l-1.4 1.4M15.3 15.3l-1.4-1.4M6.1 6.1L4.7 4.7" strokeLinecap="round" /></svg>),
+    collapse: (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><path d="M12 4l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+    expand: (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><path d="M8 4l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>),
+    x: (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" /></svg>),
+    menu: (p) => (<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><path d="M3 6h14M3 10h14M3 14h14" strokeLinecap="round" /></svg>),
+};
 
-export default function Sidebar() {
+function BrandMark({ collapsed }) {
+    return (
+        <div className="flex items-center gap-2.5 min-w-0">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none" className="shrink-0">
+                <rect x="1" y="1" width="24" height="24" stroke={C.green} strokeWidth="1.5" />
+                <path d="M7 16l4-6 3 4 5-7" stroke={C.green} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {!collapsed && (
+                <div className="min-w-0">
+                    <div className={`${F.head} text-[1rem] font-bold tracking-[1.5px]`} style={{ color: C.t1 }}>
+                        TRACK<span style={{ color: C.green }}>FLOW</span>
+                    </div>
+                    <div className={`${F.mono} text-[0.52rem] tracking-[2.5px]`} style={{ color: C.t4 }}>FINANCIAL OS</div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function SidebarItem({ item, count, collapsed, onNavigate }) {
+    const Icon = ICONS[item.icon] || ICONS.grid;
+    const exists = route().has(item.routeName);
+    const active = exists && route().current(item.routeName);
+
+    if (!exists) {
+        return (
+            <div title={collapsed ? item.label : undefined}
+                className={`flex h-10 items-center gap-3 px-3 opacity-35 ${collapsed ? 'justify-center' : ''}`}>
+                <span style={{ color: C.t4 }}><Icon /></span>
+                {!collapsed && <span className={`${F.ar} text-[0.78rem] flex-1 truncate`} style={{ color: C.t3 }}>{item.label}</span>}
+                {!collapsed && <span className={`${F.mono} text-[0.52rem] tracking-[1px]`} style={{ color: C.t4 }}>SOON</span>}
+            </div>
+        );
+    }
+
+    return (
+        <Link href={route(item.routeName)} onClick={onNavigate} title={collapsed ? item.label : undefined}
+            className={`relative flex h-10 items-center gap-3 border-r-2 transition-colors duration-150 ${collapsed ? 'justify-center px-0' : 'px-3'} ${!active ? 'hover:bg-white/[0.04]' : ''}`}
+            style={{
+                color: active ? C.green : C.t3,
+                background: active ? C.greenTrace : undefined,
+                borderRightColor: active ? C.green : 'transparent',
+            }}>
+            <span className="shrink-0"><Icon /></span>
+            {!collapsed && <span className={`${F.ar} text-[0.8rem] font-medium flex-1 truncate`}>{item.label}</span>}
+            {!collapsed && count !== undefined && (
+                <span className={`${F.mono} text-[0.6rem] px-1.5 py-0.5 border`}
+                    style={{ borderColor: active ? `${C.green}55` : C.b, color: active ? C.green : C.t4 }}>
+                    {count}
+                </span>
+            )}
+            {collapsed && count > 0 && (
+                <span className="absolute top-1.5 left-1.5 w-1.5 h-1.5" style={{ background: C.green }} />
+            )}
+        </Link>
+    );
+}
+
+export default function Sidebar({ mobileOpen = false, onMobileClose }) {
     const { props } = usePage();
     const navCounts = props.navCounts ?? {};
-    const summary = props.navSummary ?? null;
     const user = props.auth?.user ?? props.user ?? null;
-
     const [collapsed, setCollapsed] = useState(false);
 
     useEffect(() => {
         if (localStorage.getItem('tf_sidebar_collapsed') === '1') setCollapsed(true);
     }, []);
 
-    const toggle = () => setCollapsed(v => {
-        const next = !v;
-        localStorage.setItem('tf_sidebar_collapsed', next ? '1' : '0');
-        return next;
-    });
+    useEffect(() => {
+        document.documentElement.classList.toggle('sidebar-collapsed', collapsed);
+    }, [collapsed]);
 
+    const initials = String(user?.name ?? 'U').trim().split(/\s+/).slice(0, 2).map((n) => n[0]).join('').toUpperCase() || 'U';
     const profileExists = route().has('profile.edit');
-    const initials = useMemo(() => {
-        const value = String(user?.name ?? 'U').trim();
-        return value.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase() || 'U';
-    }, [user?.name]);
 
-    return (
-        <div
-            className="relative shrink-0 self-start transition-[width] duration-300 ease-in-out"
-            style={{ width: collapsed ? 68 : 256, height: `calc(100vh - ${HEADER_H}px)`, position: 'sticky', top: HEADER_H }}
-        >
-            <aside
-                className="flex h-full flex-col overflow-hidden border-r select-none"
-                style={{ background: C.deep ?? C.card, borderColor: C.b, boxShadow: '8px 0 28px rgba(0,0,0,.34)' }}
-            >
-                <div className={`${SCROLL_CLS} flex flex-1 flex-col overflow-y-auto py-3`}>
-                    {NAV_GROUPS.map((group, gi) => (
-                        <div key={group.title} className={gi > 0 ? 'mt-2 border-t pt-3' : ''} style={gi > 0 ? { borderColor: C.b } : undefined}>
-                            {!collapsed && (
-                                <div className={`${F.mono} px-4 pb-2 pt-1 text-right text-[0.58rem] uppercase tracking-[3px]`} style={{ color: C.t4 }}>
-                                    // {group.title}
-                                </div>
-                            )}
-
-                            <nav className="flex w-full flex-col gap-1">
-                                {group.items.map(item => {
-                                    const Icon = item.icon;
-                                    const exists = route().has(item.routeName);
-                                    const active = exists && route().current(item.routeName);
-                                    const count = item.countKey ? navCounts[item.countKey] : undefined;
-
-                                    const row = `${F.head} group relative flex w-full items-center transition-all duration-150 ${
-                                        collapsed ? 'h-10 justify-center px-2' : 'justify-between px-4 py-2.5 text-[0.82rem] font-semibold'
-                                    }`;
-
-                                    const content = (
-                                        <>
-                                            <span className={`flex items-center ${collapsed ? 'justify-center' : 'min-w-0 gap-2.5'}`}>
-                                                <span className="relative flex shrink-0 items-center justify-center">
-                                                    <Icon />
-                                                    {collapsed && count > 0 && (
-                                                        <span
-                                                            className="absolute -right-1 -top-1 h-2 w-2 rounded-full ring-2"
-                                                            style={{ background: item.badgeColor || C.green, '--tw-ring-color': C.deep }}
-                                                        />
-                                                    )}
-                                                </span>
-                                                {!collapsed && <span className="truncate text-right whitespace-nowrap">{item.label}</span>}
-                                            </span>
-
-                                            {!collapsed && exists && count !== undefined && (
-                                                <span
-                                                    className={`${F.mono} shrink-0 rounded-sm px-1.5 py-0.5 text-[0.65rem] font-bold`}
-                                                    style={{ color: active ? C.void : item.badgeColor, background: active ? 'rgba(4,5,7,.15)' : `${item.badgeColor}1f` }}
-                                                >
-                                                    {count}
-                                                </span>
-                                            )}
-
-                                            {!collapsed && !exists && (
-                                                <span className={`${F.mono} shrink-0 text-[0.55rem] opacity-60`} style={{ color: C.t4 }}>قريبًا</span>
-                                            )}
-                                        </>
-                                    );
-
-                                    if (!exists) {
-                                        return (
-                                            <div key={item.key} title={collapsed ? item.label : undefined} className={`${row} cursor-not-allowed opacity-40`} style={{ color: C.t3 }}>
-                                                {content}
-                                            </div>
-                                        );
-                                    }
-
-                                    return (
-                                        <Link
-                                            key={item.key}
-                                            href={route(item.routeName)}
-                                            title={collapsed ? item.label : undefined}
-                                            className={row}
-                                            style={active ? { color: C.void, background: C.green, boxShadow: `0 2px 14px ${C.greenGlow}` } : { color: C.t2 }}
-                                            onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.greenTrace; e.currentTarget.style.color = C.green2 ?? C.green; } }}
-                                            onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.t2; } }}
-                                        >
-                                            {!active && !collapsed && (
-                                                <span className="absolute right-0 top-1/2 h-0 w-[3px] -translate-y-1/2 rounded-r transition-all duration-150 group-hover:h-[60%]" style={{ background: C.green }} />
-                                            )}
-                                            {active && (
-                                                <span className="absolute right-0 top-1/2 h-[60%] w-[3px] -translate-y-1/2 rounded-r" style={{ background: C.void }} />
-                                            )}
-                                            {content}
-                                        </Link>
-                                    );
-                                })}
-                            </nav>
-                        </div>
-                    ))}
-
-                    {!collapsed && (
-                        <div className="mt-3 border-t pt-3" style={{ borderColor: C.b }}>
-                            <div className={`${F.mono} px-4 pb-2 text-right text-[0.58rem] tracking-[3px]`} style={{ color: C.t4 }}>// الثروة الإجمالية</div>
-                            <NetWorthWidget summary={summary} />
-
-                            <div className="my-2 border-t" style={{ borderColor: C.b }} />
-                            <div className={`${F.mono} px-4 pb-2 text-right text-[0.58rem] tracking-[3px]`} style={{ color: C.t4 }}>// الحسابات</div>
-                            <AccountMiniList accounts={summary?.accounts ?? []} />
-                            <BudgetMeter summary={summary} />
+    const Nav = ({ isCollapsed }) => (
+        <nav className="flex-1 overflow-y-auto px-2 pb-4">
+            {NAV_GROUPS.map((group, gi) => (
+                <div key={group.title} className={gi > 0 ? 'mt-6' : 'mt-5'}>
+                    {!isCollapsed && (
+                        <div className={`${F.mono} text-[0.58rem] tracking-[2px] px-3 mb-1.5`} style={{ color: C.t4 }}>
+                            // {group.title}
                         </div>
                     )}
-                </div>
-
-                <ProfileLink user={user} initials={initials} collapsed={collapsed} exists={profileExists} />
-            </aside>
-
-            <button
-                type="button"
-                onClick={toggle}
-                title={collapsed ? 'توسيع الشريط' : 'طي الشريط'}
-                className="absolute z-30 flex h-7 w-7 items-center justify-center rounded-full border transition-all duration-200 hover:scale-110"
-                style={{ top: '50%', right: 0, transform: 'translateY(-50%)', background: C.card2, borderColor: C.bHot, color: C.green, boxShadow: '0 0 0 3px rgba(4,5,7,.62)' }}
-            >
-                <IcoChevron style={{ transform: collapsed ? 'none' : 'rotate(180deg)', transition: 'transform .25s' }} />
-            </button>
-        </div>
-    );
-}
-
-function NetWorthWidget({ summary }) {
-    if (!summary) return null;
-    const accounts = Array.isArray(summary.accounts) ? summary.accounts : [];
-    const total = Number(summary.totalNetWorth ?? 0) || 0;
-
-    const donutData = accounts.map(a => ({
-        name: a.name,
-        total: Number(a.real_balance ?? a.balance ?? 0) || 0,
-        color_hex: a.color_hex || C.green,
-    }));
-
-    return (
-        <div className="mx-3 border p-3.5" style={{ borderColor: 'rgba(255,215,0,.25)', background: 'linear-gradient(135deg,rgba(255,215,0,.045),rgba(0,230,118,.028))' }}>
-            <div className="mb-1.5 flex items-center justify-between">
-                <span className={`${F.mono} text-[0.55rem] tracking-[2px]`} style={{ color: C.t4 }}>TOTAL NET WORTH</span>
-                <span className={`${F.mono} border px-1.5 py-0.5 text-[0.52rem]`} style={{ color: C.gold, borderColor: 'rgba(255,215,0,.14)', background: 'rgba(255,215,0,.08)' }}>LIVE</span>
-            </div>
-            <div className={`${F.mono} text-[1.35rem] leading-none tracking-[-1px]`} style={{ color: C.gold, textShadow: `0 0 20px ${C.gold}45` }}>
-                {fmtMAD(total)} <span className="text-[0.62rem]">MAD</span>
-            </div>
-            <div className={`${F.mono} mt-1 text-[0.58rem]`} style={{ color: C.t3 }}>{summary.accountsCount ?? accounts.length} حساب نشط</div>
-
-            {accounts.length > 0 && (
-                <>
-                    <div className="-mx-3 my-1"><DonutChart data={donutData} height={105} centerLabel="" centerColor={C.gold} /></div>
-                    <div className="flex flex-col gap-1.5">
-                        {accounts.slice(0, 4).map(a => (
-                            <div key={a.id} className="flex items-center justify-between gap-2">
-                                <span className={`${F.ar} min-w-0 truncate text-[0.7rem]`} style={{ color: C.t2 }}>{a.name}</span>
-                                <span className={`${F.mono} shrink-0 text-[0.7rem] font-semibold`} style={{ color: a.color_hex || C.green }}>{fmtMAD(a.real_balance ?? a.balance ?? 0)}</span>
-                            </div>
+                    <div className="space-y-0.5">
+                        {group.items.map((item) => (
+                            <SidebarItem key={item.key} item={item}
+                                count={item.countKey ? navCounts[item.countKey] : undefined}
+                                collapsed={isCollapsed} onNavigate={onMobileClose} />
                         ))}
                     </div>
-                    {accounts.length > 4 && <div className={`${F.mono} mt-2 text-right text-[0.55rem]`} style={{ color: C.t4 }}>+{accounts.length - 4} حسابات أخرى</div>}
-                </>
-            )}
-        </div>
+                </div>
+            ))}
+        </nav>
     );
-}
-
-function AccountMiniList({ accounts = [] }) {
-    if (!accounts.length) return <div className={`${F.mono} mx-3 px-2 py-2 text-center text-[0.58rem]`} style={{ color: C.t4 }}>لا توجد حسابات</div>;
 
     return (
-        <div className="flex flex-col gap-1.5 px-3">
-            {accounts.slice(0, 5).map(a => {
-                const balance = Number(a.real_balance ?? a.balance ?? 0) || 0;
-                const href = route().has('accounts.show') ? route('accounts.show', a.id) : route('accounts.index');
-
-                return (
-                    <Link
-                        key={a.id}
-                        href={href}
-                        className="group border px-2.5 py-2 transition-all duration-150"
-                        style={{ borderColor: C.b, background: C.card }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = C.bHot; e.currentTarget.style.background = C.card2; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = C.b; e.currentTarget.style.background = C.card; }}
-                    >
-                        <div className="mb-1 flex items-center justify-between gap-2">
-                            <span className={`${F.head} truncate text-[0.76rem] font-semibold`} style={{ color: C.t1 }}>{a.name}</span>
-                            <span className={`${F.mono} text-[0.55rem] uppercase`} style={{ color: C.t4 }}>{a.type ?? 'ACCOUNT'}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                            <span className={`${F.mono} text-[0.72rem] font-semibold`} style={{ color: a.color_hex || C.green }}>
-                                {fmtMAD(balance)} <span className="text-[0.52rem]" style={{ color: C.t4 }}>MAD</span>
-                            </span>
-                            <span className="h-[2px] w-14 overflow-hidden" style={{ background: C.card3 }}>
-                                <span className="block h-full" style={{ width: `${Math.min(Math.max(Number(a.utilization ?? 0), 0), 100)}%`, background: a.color_hex || C.green }} />
-                            </span>
-                        </div>
-                    </Link>
-                );
-            })}
-        </div>
-    );
-}
-
-function BudgetMeter({ summary }) {
-    const spent = Number(summary?.monthlyExpense ?? summary?.spent ?? 0) || 0;
-    const budget = Number(summary?.monthlyBudget ?? summary?.budget ?? 0) || 0;
-    if (!budget && !spent) return null;
-
-    const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
-    const tone = pct >= 90 ? C.red : pct >= 75 ? C.amber : C.green;
-
-    return (
-        <div className="mx-3 mt-2 border p-3" style={{ borderColor: C.b, background: C.card }}>
-            <div className="mb-1.5 flex items-center justify-between">
-                <span className={`${F.mono} text-[0.6rem]`} style={{ color: C.t2 }}>الميزانية الشهرية</span>
-                <span className={`${F.mono} text-[0.65rem] font-semibold`} style={{ color: tone }}>{Math.round(pct)}%</span>
-            </div>
-            <div className="mb-1 h-[5px] overflow-hidden" style={{ background: C.card3 }}>
-                <div className="h-full transition-all duration-700" style={{ width: `${pct}%`, background: `repeating-linear-gradient(90deg,${tone} 0,${tone} 4px,transparent 4px,transparent 7px)` }} />
-            </div>
-            <div className={`${F.mono} text-[0.58rem]`} style={{ color: C.t3 }}>{fmtMAD(spent)} / {fmtMAD(budget)} MAD</div>
-        </div>
-    );
-}
-
-function ProfileLink({ user, initials, collapsed, exists }) {
-    const content = (
         <>
-            <span className="relative flex shrink-0 items-center justify-center">
-                {user?.avatar ? (
-                    <img src={user.avatar} alt={user.name ?? 'Profile'} className="h-9 w-9 border object-cover" style={{ borderColor: C.bHot }} />
-                ) : (
-                    <span className="flex h-9 w-9 items-center justify-center border" style={{ color: C.green, borderColor: C.bHot, background: C.greenTrace }}>
-                        <span className={`${F.mono} text-[0.72rem] font-bold`}>{initials}</span>
-                    </span>
-                )}
-                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2" style={{ background: C.green, borderColor: C.deep, boxShadow: `0 0 8px ${C.green}` }} />
-            </span>
+            {/* DESKTOP */}
+            <aside dir="rtl" className={`fixed right-0 top-0 z-[200] hidden h-screen lg:flex flex-col border-l transition-all duration-300 ${collapsed ? 'w-[68px]' : 'w-[240px]'}`}
+                style={{ background: C.card, borderColor: C.b }}>
+                <div className={`flex h-14 shrink-0 items-center border-b ${collapsed ? 'justify-center px-0' : 'justify-between px-4'}`} style={{ borderColor: C.b }}>
+                    <BrandMark collapsed={collapsed} />
+                </div>
 
-            {!collapsed && (
-                <span className="min-w-0 flex-1 text-right">
-                    <span className={`${F.mono} block text-[0.52rem] uppercase tracking-[1.8px]`} style={{ color: C.t4 }}>ACCOUNT</span>
-                    <span className={`${F.ar} mt-0.5 block truncate text-[0.76rem] font-semibold`} style={{ color: C.t1 }}>{user?.name ?? 'حسابي الشخصي'}</span>
-                    {user?.email && <span className={`${F.mono} mt-0.5 block truncate text-[0.52rem]`} style={{ color: C.t4 }}>{user.email}</span>}
-                </span>
-            )}
+                <Nav isCollapsed={collapsed} />
 
-            {!collapsed && <span className="flex h-7 w-7 shrink-0 items-center justify-center border" style={{ borderColor: C.b, color: C.t3 }}><IcoSettings width={13} height={13} /></span>}
-            {collapsed && <IcoUser width={14} height={14} />}
+                <div className="border-t p-2 space-y-1" style={{ borderColor: C.b }}>
+                    <button type="button" title="المساعدة والدعم"
+                        className={`flex h-9 w-full items-center gap-3 transition-colors hover:bg-white/[0.04] ${collapsed ? 'justify-center' : 'px-3'}`}
+                        style={{ color: C.t3 }}>
+                        <ICONS.help />
+                        {!collapsed && <span className={`${F.ar} text-[0.75rem]`}>المساعدة والدعم</span>}
+                    </button>
+
+                    {profileExists && (
+                        <Link href={route('profile.edit')} onClick={onMobileClose}
+                            className={`flex items-center gap-2.5 border p-2 transition-colors hover:bg-white/[0.04] ${collapsed ? 'justify-center' : ''}`}
+                            style={{ borderColor: C.b, background: C.card2 }}>
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center border"
+                                style={{ borderColor: `${C.green}55`, color: C.green, background: C.greenTrace }}>
+                                <span className={`${F.mono} text-[0.65rem] font-bold`}>{initials}</span>
+                            </span>
+                            {!collapsed && (
+                                <>
+                                    <span className="min-w-0 flex-1">
+                                        <span className={`${F.ar} block text-[0.72rem] font-semibold truncate`} style={{ color: C.t1 }}>{user?.name ?? 'حسابي'}</span>
+                                        <span className={`${F.mono} block text-[0.55rem] truncate`} style={{ color: C.t4 }}>{user?.email ?? '—'}</span>
+                                    </span>
+                                    <span style={{ color: C.t4 }}><ICONS.gear /></span>
+                                </>
+                            )}
+                        </Link>
+                    )}
+
+                    <button type="button"
+                        onClick={() => setCollapsed((c) => { localStorage.setItem('tf_sidebar_collapsed', c ? '0' : '1'); return !c; })}
+                        className={`flex h-9 w-full items-center gap-3 transition-colors hover:bg-white/[0.04] ${collapsed ? 'justify-center' : 'px-3'}`}
+                        style={{ color: C.t4 }}>
+                        {collapsed ? <ICONS.expand /> : <ICONS.collapse />}
+                        {!collapsed && <span className={`${F.mono} text-[0.6rem] tracking-[1px]`}>طي القائمة</span>}
+                    </button>
+                </div>
+            </aside>
+
+            {/* MOBILE */}
+            <aside dir="rtl" className={`fixed right-0 top-0 z-[250] flex h-screen w-[260px] flex-col border-l shadow-2xl transition-transform duration-300 lg:hidden ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                style={{ background: C.card, borderColor: C.b }}>
+                <div className="flex h-14 items-center justify-between border-b px-4" style={{ borderColor: C.b }}>
+                    <BrandMark collapsed={false} />
+                    <button type="button" onClick={onMobileClose} aria-label="إغلاق" className="p-1" style={{ color: C.t3 }}>
+                        <ICONS.x />
+                    </button>
+                </div>
+                <Nav isCollapsed={false} />
+            </aside>
         </>
-    );
-
-    const common = `group flex w-full items-center gap-2.5 border-t px-3 py-3 transition-all duration-150 ${collapsed ? 'justify-center' : ''}`;
-    const style = { borderColor: C.b, background: C.card, color: C.t2 };
-
-    if (!exists) {
-        return <div title={collapsed ? user?.name ?? 'حسابي الشخصي' : undefined} className={`${common} cursor-not-allowed opacity-70`} style={style}>{content}</div>;
-    }
-
-    return (
-        <Link
-            href={route('profile.edit')}
-            title={collapsed ? user?.name ?? 'حسابي الشخصي' : undefined}
-            className={common}
-            style={style}
-            onMouseEnter={e => { e.currentTarget.style.background = C.greenTrace; e.currentTarget.style.borderColor = C.bHot; e.currentTarget.style.color = C.green2 ?? C.green; }}
-            onMouseLeave={e => { e.currentTarget.style.background = C.card; e.currentTarget.style.borderColor = C.b; e.currentTarget.style.color = C.t2; }}
-        >
-            {content}
-        </Link>
     );
 }
