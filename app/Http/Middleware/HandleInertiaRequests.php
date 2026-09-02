@@ -34,6 +34,18 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+'navCounts' => fn () => $request->user() ? [
+    'accounts' => $request->user()->accounts()->count(),
+    'transactions' => $request->user()->transactions()->count(),
+] : [],
+'navSummary' => fn () => $request->user() ? (function () use ($request) {
+    $accounts = $request->user()->accounts()->orderByDesc('balance')->get(['id', 'name', 'balance', 'color_hex']);
+    return [
+        'totalNetWorth' => (float) $accounts->sum('balance'),
+        'accountsCount' => $accounts->count(),
+        'accounts' => $accounts,
+    ];
+})() : null,
         ];
     }
 }

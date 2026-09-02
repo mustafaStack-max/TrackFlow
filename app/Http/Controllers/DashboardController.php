@@ -12,7 +12,8 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        $rangeDays = (int) $request->integer('range', 90); // how many days of history to ship to the front-end
+        // ★ التعديل الوحيد: 365 بدل 90 — لدعم كل قوالب الفترات
+        $rangeDays = (int) $request->integer('range', 365);
         $since = Carbon::now()->subDays($rangeDays)->startOfDay();
 
         $accounts = $user->accounts()->latest()->get();
@@ -82,32 +83,43 @@ class DashboardController extends Controller
                     'name' => $cat->name ?? 'غير مصنف',
                     'color_hex' => $cat->color_hex ?? '#5a8068',
                     'total' => round((float) $rows->sum('amount'), 2),
+                    'count' => $rows->count(),
+                    'avg' => round((float) $rows->avg('amount'), 2),
                 ];
             })
             ->sortByDesc('total')
             ->values();
 
-        // ── account breakdown (this month, income vs expense) ──
+        // ── account breakdown (this month, income vs expense + type & balance) ──
         $accountBreakdown = $accounts->map(function ($acc) use ($thisMonthTx) {
             $rows = $thisMonthTx->where('account_id', $acc->id);
             return [
                 'id' => $acc->id,
                 'name' => $acc->name,
+                'type' => $acc->type,
                 'color_hex' => $acc->color_hex,
+                'balance' => (float) $acc->balance,
                 'income' => round((float) $rows->where('type', 'income')->sum('amount'), 2),
                 'expense' => round((float) $rows->where('type', 'expense')->sum('amount'), 2),
             ];
         })->values();
 
-        // ── spending heatmap: last 35 days, daily expense total ──
+        // ── heatmap: last 6 months (income vs expense) ──
+        $heatSince = Carbon::now()->subMonths(6)->startOfDay();
+        $heatTx = $user->transactions()
+            ->where('transaction_date', '>=', $heatSince)
+            ->get()
+            ->groupBy(fn ($t) => Carbon::parse($t->transaction_date)->format('Y-m-d'));
+
         $heatmap = [];
-        $hCursor = Carbon::now()->subDays(34)->startOfDay();
+        $hCursor = $heatSince->copy();
         while ($hCursor->lte($today)) {
             $key = $hCursor->format('Y-m-d');
-            $dayTx = $byDay->get($key, collect());
+            $dayTx = $heatTx->get($key, collect());
             $heatmap[] = [
-                'date' => $key,
-                'amount' => round((float) $dayTx->where('type', 'expense')->sum('amount'), 2),
+                'date'    => $key,
+                'expense' => round((float) $dayTx->where('type', 'expense')->sum('amount'), 2),
+                'income'  => round((float) $dayTx->where('type', 'income')->sum('amount'), 2),
             ];
             $hCursor->addDay();
         }
@@ -136,7 +148,7 @@ class DashboardController extends Controller
                 'momIncomePct' => $momIncomePct,
                 'predictedExpenseEom' => $predictedExpenseEom,
             ],
-            'accounts' => $accounts,
+            'accounts' => $accountBreakdown,
             'series' => $series,
             'categoryBreakdown' => $categoryBreakdown,
             'accountBreakdown' => $accountBreakdown,
