@@ -2,9 +2,347 @@
 @tailwind components;
 @tailwind utilities;
 
-body{
+/* ═══════════════════════════════════════════════════════════════
+   TrackFlow — Global Stylesheet
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── أساسيات ── */
+body {
+    font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif;
     background-color: #0c1117;
+    color: #e8f5ee;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
+
 body.light {
-        background-color: #eaf2ed;
+    background-color: #eef3f0;
+    color: #12211a;
+}
+
+/* ── متغيرات الثيم ── */
+:root {
+    /* السكرول */
+    --sb-track: transparent;
+    --sb-thumb: #1c2b24;
+    --sb-hover: #00e676;
+    --sb-edge: #0a0f0d;
+
+    /* شريط Inertia */
+    --np-a: #00e676;
+    --np-b: #00d4ff;
+    --np-glow: rgba(0, 230, 118, 0.35);
+
+    /* خلفيات */
+    --bg-main: #0c1117;
+    --bg-card: #0d1512;
+    --bg-card2: #101a16;
+}
+
+[data-theme='light'] {
+    --sb-thumb: #c3d4cb;
+    --sb-hover: #00994d;
+    --sb-edge: #eef3f0;
+
+    --np-a: #00994d;
+    --np-b: #0083ad;
+    --np-glow: rgba(0, 153, 77, 0.30);
+
+    --bg-main: #eef3f0;
+    --bg-card: #ffffff;
+    --bg-card2: #f4f8f6;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLL SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── استقرار التخطيط ── */
+html {
+    scrollbar-gutter: stable;
+    scroll-behavior: smooth;
+}
+
+/* ── Firefox ── */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sb-thumb) var(--sb-track);
+}
+
+/* ── WebKit (Chrome / Edge / Safari) ── */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--sb-track);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--sb-thumb);
+    border-radius: 999px;
+    border: 3px solid var(--sb-edge);
+    transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--sb-hover);
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* ── سكرول أنحف للمناطق الداخلية ── */
+nav::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-auto::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+nav::-webkit-scrollbar-thumb,
+.overflow-y-auto::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb,
+.overflow-auto::-webkit-scrollbar-thumb {
+    border: none;
+    border-radius: 999px;
+}
+
+/* ── إخفاء السكرول عند تفعيل ScrollRail ── */
+html.tf-rail {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+html.tf-rail::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+/* ── فئة مساعدة: إخفاء السكرول مع بقاء التمرير ── */
+.no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INERTIA PROGRESS BAR
+   ═══════════════════════════════════════════════════════════════ */
+
+#nprogress {
+    pointer-events: none;
+}
+
+#nprogress .bar {
+    background: linear-gradient(90deg, var(--np-a), var(--np-b)) !important;
+    height: 2px !important;
+    z-index: 9999 !important;
+    opacity: 0.85;
+    box-shadow: 0 0 8px var(--np-glow);
+}
+
+#nprogress .peg {
+    box-shadow: 0 0 10px var(--np-glow),
+                0 0 4px var(--np-glow) !important;
+    opacity: 0.8 !important;
+}
+
+#nprogress .spinner {
+    display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SELECTION & FOCUS
+   ═══════════════════════════════════════════════════════════════ */
+
+::selection {
+    background: var(--sb-hover);
+    color: #041008;
+}
+
+::-moz-selection {
+    background: var(--sb-hover);
+    color: #041008;
+}
+
+/* ── إزالة outline الافتراضي ── */
+*:focus {
+    outline: none;
+}
+
+/* ── focus مرئي للـ accessibility ── */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--sb-hover);
+    outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── فئات الأنيميشن ── */
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── منع تحديد النص ── */
+.no-select {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* ── نص غير مرئي (للـ accessibility فقط) ── */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* ── تأثير hover على البطاقات ── */
+.card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* ── تأثير shimmer للتحميل ── */
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.shimmer {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── تحسينات الأجهزة الصغيرة ── */
+@media (max-width: 640px) {
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        border: 2px solid var(--sb-edge);
+    }
+}
+
+/* ── تحسينات الشاشات الكبيرة ── */
+@media (min-width: 1920px) {
+    body {
+        font-size: 16px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PRINT STYLES
+   ═══════════════════════════════════════════════════════════════ */
+
+@media print {
+    body {
+        background: white;
+        color: black;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
 }
