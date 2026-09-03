@@ -5,6 +5,8 @@ import { COLORS as C, FONT as F, AR_MONTHS_SHORT } from '@/Components/Dashboard/
 import { fmtMAD } from '@/Components/Dashboard/format';
 import BudgetModal from '@/Components/Budgets/BudgetModal';
 import ConfirmModal from '@/Components/Budgets/ConfirmModal';
+import BudgetVsActual from '@/Components/Budgets/BudgetVsActual';
+import BudgetInsights from '@/Components/Budgets/BudgetInsights';
 
 const IcoPlus = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" {...p}><path d="M10 4v12M4 10h12" strokeLinecap="round" /></svg>);
 const IcoEdit = (p) => (<svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" {...p}><path d="M14 2l4 4-10 10H4v-4L14 2z" strokeLinejoin="round" /></svg>);
@@ -184,6 +186,27 @@ export default function Budgets({ month, budgets = [], totals = {}, categories =
                         ))}
                     </div>
                 )}
+
+{budgets.length > 0 && (
+    <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <div className="rounded-lg p-5" style={{ background: C.card }}>
+            <div className="mb-4 flex items-center justify-between">
+                <h2 className={`${F.ar} text-[0.95rem] font-bold`} style={{ color: C.t1 }}>الميزانية مقابل الإنفاق</h2>
+                <span className={`${F.mono} text-[0.58rem] tracking-[1px] border px-2 py-0.5`}
+                    style={{ borderColor: C.b, color: C.t3, background: C.card2 }}>BUDGET vs ACTUAL</span>
+            </div>
+            <BudgetVsActual budgets={budgets} />
+        </div>
+        <div className="rounded-lg p-5" style={{ background: C.card }}>
+            <div className="mb-4 flex items-center justify-between">
+                <h2 className={`${F.ar} text-[0.95rem] font-bold`} style={{ color: C.t1 }}>رؤى الشهر</h2>
+                <span className={`${F.mono} text-[0.58rem] tracking-[1px] border px-2 py-0.5`}
+                    style={{ borderColor: C.b, color: C.t3, background: C.card2 }}>INSIGHTS</span>
+            </div>
+            <BudgetInsights budgets={budgets} totals={totals} />
+        </div>
+    </div>
+)}
 
                 <BudgetModal open={modalOpen} onClose={() => setModalOpen(false)} budget={editing} categories={categories} />
                 <ConfirmModal budget={deleting} onClose={() => setDeleting(null)} />
