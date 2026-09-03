@@ -202,12 +202,26 @@ export default function Accounts({ accounts = [] }) {
                 </div>
 
                 {/* STATS */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <StatBox label="TOTAL NET WORTH" value={fmt(stats.totalBalance)} sub="MAD" color={C.gold} icon={<IcoWallet />} />
-                    <StatBox label="TOTAL INCOME" value={`+${fmt(stats.totalIncome)}`} sub="MAD" color={C.green} icon={<IcoTrendUp />} />
-                    <StatBox label="TOTAL EXPENSE" value={`-${fmt(stats.totalExpense)}`} sub="MAD" color={C.red} icon={<IcoTrendDown />} />
-                    <StatBox label="ACCOUNTS" value={stats.total} sub="حساب نشط" color={C.cyan} />
-                </div>
+<div className="grid grid-cols-2 overflow-hidden rounded-lg border md:grid-cols-4"
+    style={{ background: C.card, borderColor: C.b }}>
+    {[
+        { l: 'الثروة الإجمالية', v: fmt(stats.totalBalance), s: 'MAD', dot: C.gold },
+        { l: 'إجمالي الدخل', v: `+${fmt(stats.totalIncome)}`, s: 'MAD', dot: C.green },
+        { l: 'إجمالي المصاريف', v: `-${fmt(stats.totalExpense)}`, s: 'MAD', dot: C.red },
+        { l: 'الحسابات', v: String(stats.total), s: 'حساب نشط', dot: C.cyan },
+    ].map((x, i) => (
+        <div key={x.l} className="p-4" style={{ borderInlineStart: i ? `1px solid ${C.b}` : undefined }}>
+            <div className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: x.dot }} />
+                <span className={`${F.ar} text-[0.75rem]`} style={{ color: C.t4 }}>{x.l}</span>
+            </div>
+            <div className="mt-1.5 flex items-baseline gap-1.5">
+                <span className={`${F.mono} text-[1.2rem] font-bold`} style={{ color: C.t1 }}>{x.v}</span>
+                <span className={`${F.mono} text-[0.6rem]`} style={{ color: C.t4 }}>{x.s}</span>
+            </div>
+        </div>
+    ))}
+</div>
 
                 {/* TOOLBAR: بحث + فلترة */}
                 <div className="flex flex-wrap items-center gap-3 border p-3" style={{ background: C.card, borderColor: C.b }}>
@@ -522,19 +536,3 @@ export default function Accounts({ accounts = [] }) {
     );
 }
 
-/* ── مكون إحصائية صغير ── */
-function StatBox({ label, value, sub, color, icon }) {
-    return (
-        <div className="relative overflow-hidden border p-3" style={{ background: C.card, borderColor: C.b }}>
-            <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: color }} />
-            <div className="flex items-start justify-between gap-2 mt-1">
-                <div>
-                    <div className={`${F.mono} text-[0.58rem] tracking-[2px]`} style={{ color: C.t4 }}>{label}</div>
-                    <div className={`${F.mono} text-[1.4rem] font-bold mt-1`} style={{ color }}>{value}</div>
-                    {sub && <div className={`${F.mono} text-[0.6rem] mt-0.5`} style={{ color: C.t3 }}>{sub}</div>}
-                </div>
-                {icon && <span style={{ color, opacity: 0.6 }}>{icon}</span>}
-            </div>
-        </div>
-    );
-}

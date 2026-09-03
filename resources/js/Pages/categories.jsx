@@ -134,33 +134,51 @@ export default function Categories({ Categories = [] }) {
     return (
         <AuthenticatedLayout>
             <Head title="إدارة التصنيفات" />
-            <div dir="rtl" className="flex flex-col gap-5">
+            <div dir="rtl" className="flex flex-col gap-6">
 
-                {/* HEADER */}
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                {/* ★ HEADER هادئ — عنوان بسيط + زر أخضر مصمت */}
+                <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <div className={`${F.head} text-[1.3rem] font-bold tracking-[3px] uppercase`} style={{ color: C.t1 }}>
-                            إدارة <em className="not-italic" style={{ color: C.green }}>التصنيفات</em>
-                        </div>
-                        <div className={`${F.mono} text-[0.72rem] tracking-[2px] mt-1`} style={{ color: C.t4 }}>
-                            // CATEGORIES MANAGEMENT // SYSTEM + CUSTOM
-                        </div>
+                        <h1 className={`${F.ar} text-[1.35rem] font-bold`} style={{ color: C.t1 }}>التصنيفات</h1>
+                        <p className={`${F.ar} mt-1 text-[0.82rem]`} style={{ color: C.t3 }}>
+                            نظّم معاملاتك بفئات واضحة ومعبرة
+                        </p>
                     </div>
                     <button type="button" onClick={openCreate}
-                        className={`${F.head} flex items-center gap-2 border px-3.5 py-2 text-[0.75rem] font-semibold tracking-[1.5px] uppercase transition-colors hover:brightness-125`}
-                        style={{ borderColor: `${C.cyan}66`, color: C.cyan, background: `${C.cyan}0d` }}>
+                        className="flex items-center gap-2 rounded-md px-4 py-2.5 text-[0.82rem] font-bold transition-all hover:brightness-110"
+                        style={{ background: C.green, color: C.void }}>
                         <IcoPlus /> تصنيف جديد
                     </button>
                 </div>
 
-                {/* STATS */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <StatBox label="TOTAL" value={stats.total} sub="تصنيف" color={C.cyan} />
-                    <StatBox label="SYSTEM" value={stats.system} sub="محمي" color={C.green} icon={<IcoShield />} />
-                    <StatBox label="CUSTOM" value={stats.custom} sub="مخصص" color={C.gold} icon={<IcoPalette />} />
-                    <StatBox label="TOP USAGE"
-                        value={stats.top ? (stats.top.usage_count || 0) : 0}
-                        sub={stats.top ? stats.top.name : '—'} color={C.red} icon={<IcoTrend />} />
+                {/* TOAST */}
+                {message && (
+                    <div className={`${F.ar} border p-2.5 text-[0.75rem]`}
+                        style={{ borderColor: `${C.green}55`, color: C.green, background: C.greenTrace }}>
+                        ✓ {message}
+                    </div>
+                )}
+
+                {/* ★ STATS — حاوية واحدة، أرقام بيضاء، لون في النقاط فقط */}
+                <div className="grid grid-cols-2 overflow-hidden rounded-lg border md:grid-cols-4"
+                    style={{ background: C.card, borderColor: C.b }}>
+                    {[
+                        { l: 'إجمالي التصنيفات', v: stats.total, dot: C.cyan, s: 'تصنيف' },
+                        { l: 'تصنيفات النظام', v: stats.system, dot: C.green, s: 'محمية' },
+                        { l: 'تصنيفات مخصصة', v: stats.custom, dot: C.gold, s: 'من إنشائك' },
+                        { l: 'إجمالي الاستخدام', v: stats.totalUsage, dot: C.red, s: 'عملية' },
+                    ].map((x, i) => (
+                        <div key={x.l} className="p-4" style={{ borderInlineStart: i ? `1px solid ${C.b}` : undefined }}>
+                            <div className="flex items-center gap-1.5">
+                                <span className="h-1.5 w-1.5 rounded-full" style={{ background: x.dot }} />
+                                <span className={`${F.ar} text-[0.75rem]`} style={{ color: C.t4 }}>{x.l}</span>
+                            </div>
+                            <div className="mt-1.5 flex items-baseline gap-1.5">
+                                <span className={`${F.mono} text-[1.2rem] font-bold`} style={{ color: C.t1 }}>{x.v}</span>
+                                <span className={`${F.ar} text-[0.6rem]`} style={{ color: C.t4 }}>{x.s}</span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
                 {/* TOOLBAR: بحث + فلترة */}
@@ -449,22 +467,5 @@ export default function Categories({ Categories = [] }) {
                 )}
             </div>
         </AuthenticatedLayout>
-    );
-}
-
-/* ── مكون إحصائية صغير ── */
-function StatBox({ label, value, sub, color, icon }) {
-    return (
-        <div className="relative overflow-hidden border p-3" style={{ background: C.card, borderColor: C.b }}>
-            <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: color }} />
-            <div className="flex items-start justify-between gap-2 mt-1">
-                <div>
-                    <div className={`${F.mono} text-[0.58rem] tracking-[2px]`} style={{ color: C.t4 }}>{label}</div>
-                    <div className={`${F.mono} text-[1.4rem] font-bold mt-1`} style={{ color }}>{value}</div>
-                    {sub && <div className={`${F.ar} text-[0.65rem] mt-0.5 truncate max-w-[120px]`} style={{ color: C.t3 }}>{sub}</div>}
-                </div>
-                {icon && <span style={{ color, opacity: 0.6 }}>{icon}</span>}
-            </div>
-        </div>
     );
 }
