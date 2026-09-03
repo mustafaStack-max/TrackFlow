@@ -8,6 +8,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -28,7 +29,29 @@ Route::middleware('auth')->group(function () {
 
     Route::get('budgets/suggest', [BudgetController::class, 'suggest'])->name('budgets.suggest');
     Route::resource('budgets', BudgetController::class)->except(['create', 'show', 'edit']);
+
+    Route::get('notifications', function (Request $request) {
+        return $request->user()->notifications()->latest()->take(15)->get()->map(fn ($n) => [
+            'id' => $n->id,
+            'message' => $n->data['message'] ?? '',
+            'level' => $n->data['level'] ?? 'info',
+            'created_at' => $n->created_at?->diffForHumans(),
+            'read_at' => $n->read_at,
+        ]);
+    })->name('notifications.index');
+
+    Route::post('notifications/read-all', function (Request $request) {
+        $request->user()->unreadNotifications->markAsRead();
+        return back();
+    })->name('notifications.readAll');
+
+    Route::post('notifications/{id}/read', function (Request $request, $id) {
+        $n = $request->user()->notifications()->findOrFail($id);
+        $n->markAsRead();
+        return back();
+    })->name('notifications.readOne');
 });
+
 
 Route::get('/accounts' , [AccountController::class , 'index'])->middleware('auth')->name('accounts.index') ;
 Route::post('/accounts' , [AccountController::class , 'store'])->middleware('auth')->name('accounts.store') ;

@@ -46,6 +46,15 @@ class HandleInertiaRequests extends Middleware
         'accounts' => $accounts,
     ];
 })() : null,
+'notifications' => $request->user()
+    ? $request->user()->notifications()->latest()->take(15)->get()->map(fn ($n) => [
+        'id' => $n->id,
+        'message' => $n->data['message'] ?? '',
+        'level' => $n->data['level'] ?? 'info',
+        'created_at' => $n->created_at?->diffForHumans(),
+        'read_at' => $n->read_at, 
+    ])->all()
+    : [],
         ];
     }
 }

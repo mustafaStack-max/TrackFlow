@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use App\Events\TransactionChanged;
 
 class Transaction extends Model
 {
@@ -35,6 +36,11 @@ class Transaction extends Model
                 $t->uuid = (string) Str::uuid();
             }
         });
+        $fire = fn (Transaction $t) => event(new TransactionChanged($t));
+
+        static::created($fire);
+        static::updated($fire);
+        static::deleted($fire);
     }
 
     public function user ()
