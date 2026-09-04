@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -31,30 +32,47 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
+
             'auth' => [
                 'user' => $request->user(),
             ],
-'navCounts' => fn () => $request->user() ? [
-    'accounts' => $request->user()->accounts()->count(),
-    'transactions' => $request->user()->transactions()->count(),
-] : [],
-'navSummary' => fn () => $request->user() ? (function () use ($request) {
-    $accounts = $request->user()->accounts()->orderByDesc('balance')->get(['id', 'name', 'balance', 'color_hex']);
-    return [
-        'totalNetWorth' => (float) $accounts->sum('balance'),
-        'accountsCount' => $accounts->count(),
-        'accounts' => $accounts,
-    ];
-})() : null,
-'notifications' => $request->user()
-    ? $request->user()->notifications()->latest()->take(15)->get()->map(fn ($n) => [
-        'id' => $n->id,
-        'message' => $n->data['message'] ?? '',
-        'level' => $n->data['level'] ?? 'info',
-        'created_at' => $n->created_at?->diffForHumans(),
-        'read_at' => $n->read_at, 
-    ])->all()
-    : [],
+
+            'navCounts' => fn () => $request->user() ? [
+                'accounts' => $request->user()->accounts()->count(),
+                'transactions' => $request->user()->transactions()->count(),
+            ] : [],
+
+            'navSummary' => fn () => $request->user() ? (function () use ($request) {
+                $accounts = $request->user()->accounts()->orderByDesc('balance')->get(['id', 'name', 'balance', 'color_hex']);
+                return [
+                    'totalNetWorth' => (float) $accounts->sum('balance'),
+                    'accountsCount' => $accounts->count(),
+                    'accounts' => $accounts,
+                ];
+            })() : null,
+
+            'notifications' => $request->user()
+                ? $request->user()->notifications()->latest()->take(15)->get()->map(fn ($n) => [
+                    'id' => $n->id,
+                    'message' => $n->data['message'] ?? '',
+                    'level' => $n->data['level'] ?? 'info',
+                    'created_at' => $n->created_at?->diffForHumans(),
+                    'read_at' => $n->read_at,
+                ])->all()
+                : [],
+
+                'quickAdd' => fn () => $request->user() ? [
+                'categories' => Category::where(function ($q) use ($request) {
+                        $q->where('user_id', $request->user()->id)
+                          ->orWhere('is_system', true);
+                    })
+                    ->orderByDesc('is_system')
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'color_hex']),
+                'accounts' => $request->user()->accounts()
+                    ->orderByDesc('created_at')
+                    ->get(['id', 'name', 'type', 'color_hex']),
+            ] : null,
         ];
     }
 }
