@@ -61,7 +61,7 @@ function BrandMark({ collapsed }) {
     );
 }
 
-function SidebarItem({ item, count, collapsed, onNavigate }) {
+function SidebarItem({  item, count, collapsed, onNavigate }) {
     const Icon = ICONS[item.icon] || ICONS.grid;
     const exists = route().has(item.routeName);
     const active = exists && route().current(item.routeName);
@@ -100,10 +100,10 @@ function SidebarItem({ item, count, collapsed, onNavigate }) {
     );
 }
 
-export default function Sidebar({ mobileOpen = false, onMobileClose }) {
+export default function Sidebar({ auth , mobileOpen = false, onMobileClose }) {
     const { props } = usePage();
     const navCounts = props.navCounts ?? {};
-    const user = props.auth?.user ?? props.user ?? null;
+    const user = auth?.user ?? props.auth.user ?? null;
     const [collapsed, setCollapsed] = useState(false);
 
     useEffect(() => {
@@ -114,7 +114,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
         document.documentElement.classList.toggle('sidebar-collapsed', collapsed);
     }, [collapsed]);
 
-    const initials = String(user?.name ?? 'U').trim().split(/\s+/).slice(0, 2).map((n) => n[0]).join('').toUpperCase() || 'U';
+    const initials = String(user?.username ?? 'U').trim().split(/\s+/).slice(0, 2).map((n) => n[0]).join('').toUpperCase() || 'U';
     const profileExists = route().has('profile.edit');
 
     const Nav = ({ isCollapsed }) => (
@@ -168,7 +168,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }) {
                             {!collapsed && (
                                 <>
                                     <span className="min-w-0 flex-1">
-                                        <span className={`${F.ar} block text-[0.72rem] font-semibold truncate`} style={{ color: C.t1 }}>{user?.name ?? 'حسابي'}</span>
+                                        <span className={`${F.ar} block text-[0.72rem] font-semibold truncate`} style={{ color: C.t1 }}>{user.username ?? 'حسابي'}</span>
                                         <span className={`${F.mono} block text-[0.55rem] truncate`} style={{ color: C.t4 }}>{user?.email ?? '—'}</span>
                                     </span>
                                     <span style={{ color: C.t4 }}><ICONS.gear /></span>
