@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use App\Events\TransactionChanged;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Transaction extends Model
 {
-    use HasFactory ;
+      use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'uuid',
@@ -28,6 +29,13 @@ class Transaction extends Model
         "tags"
 
     ];
+
+
+    protected $casts = [
+    'transaction_date' => 'datetime',
+    'amount' => 'decimal:2',
+    'tags' => 'array',
+];
 
         protected static function booted(): void
     {

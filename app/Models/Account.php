@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class Account extends Model
 {
-    use HasFactory ;
+      use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'uuid' ,
@@ -24,6 +25,10 @@ class Account extends Model
         protected $hidden = [
         'is_active',
     ];
+    protected $casts = [
+    'balance' => 'decimal:2',
+    'is_active' => 'boolean',
+];
 
     protected static function booted(): void
     {

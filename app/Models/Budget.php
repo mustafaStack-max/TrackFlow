@@ -62,4 +62,12 @@ class Budget extends Model
     {
         return $this->category_id === null;
     }
+
+public function spentQuery()
+{
+    return Transaction::query()
+        ->where('user_id', $this->user_id)
+        ->where('type', 'expense')
+        ->when($this->category_id, fn ($q) => $q->where('category_id', $this->category_id));
+}
 }
