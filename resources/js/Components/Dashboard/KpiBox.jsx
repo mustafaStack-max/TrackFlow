@@ -28,13 +28,14 @@ export default function KpiBox({ icon: Icon, color = C.green, tag, value, label,
     );
 }
 
-export function MomBadge({ pct, invert = false }) {
+
+export function MomBadge({ pct, invert = false, label = 'عن الفترة السابقة' }) {
     if (pct === null || pct === undefined) return null;
     const good = invert ? pct <= 0 : pct >= 0;
     const color = good ? C.green : C.red;
     return (
         <span className={`${F.mono} text-[0.62rem]`} style={{ color }}>
-            {pct >= 0 ? '▲' : '▼'} {Math.abs(pct)}% عن الشهر الماضي
+            {pct >= 0 ? '▲' : '▼'} {Math.abs(pct)}% {label}
         </span>
     );
 }

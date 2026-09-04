@@ -126,16 +126,17 @@ export default function AdvancedFlowChart({
     title = 'مبيان المقارنة وتدفق السيولة المالية',
     subtitle = 'تابع مسار المداخيل مقابل المصاريف في الزمن الحقيقي مع منحنيات النمو والفائض المالي',
     periodLabel,
-    defaultRange = '30d',
+    range = 'month',          // ★ المدة المختارة (من الأب)
+    customFrom = null,        // ★ للفترة المخصصة
+    customTo = null,          // ★ للفترة المخصصة
+    onRangeChange,            // ★ callback لتغيير المدة
     defaultGranularity = 'auto',
     defaultBudgetCeiling,
 }) {
     const gid = useId().replace(/[^a-zA-Z0-9]/g, '');
     const iso = (d) => d.toISOString().slice(0, 10);
-
     const [granularity, setGranularity] = useState(defaultGranularity);
-    const [range, setRange] = useState(defaultRange);
-    const [custom, setCustom] = useState({ from: '', to: '' });
+    const [custom, setCustom] = useState({ from: customFrom || '', to: customTo || '' });
     const [optionsOpen, setOptionsOpen] = useState(false);
     const [curveType, setCurveType] = useState('monotone');
     const [showPredictions, setShowPredictions] = useState(false);
@@ -145,7 +146,6 @@ export default function AdvancedFlowChart({
     const [showDots, setShowDots] = useState(false);
     const [showPeaks, setShowPeaks] = useState(false);
     const [visibleSeries, setVisibleSeries] = useState({ income: true, expense: true, net: true, cumulative: true });
-
     const avgExpenseAll = useMemo(() => average(series.map((s) => s.expense)), [series]);
     const [budgetCeiling, setBudgetCeiling] = useState(
         defaultBudgetCeiling ?? (avgExpenseAll > 0 ? Math.round((avgExpenseAll * 1.3) / 100) * 100 : 8000)
@@ -153,21 +153,14 @@ export default function AdvancedFlowChart({
 
     const toggleSeries = (key) => setVisibleSeries((v) => ({ ...v, [key]: !v[key] }));
 
-    /* ★ الفترة المختارة + تجميع تلقائي */
-    const ranged = useMemo(() => applyRange(series, range, custom), [series, range, custom]);
+    /* ★ Series جايين من السيرفلر مفلترين — ما بقاش applyRange هنا */
+    const ranged = series; // ★ البيانات جات مفلترة من الـ Backend
+
     const effGranularity = granularity === 'auto' ? autoGranularity(ranged.length) : granularity;
     const points = useMemo(() => bucketSeries(ranged, effGranularity), [ranged, effGranularity]);
 
-    /* ★ مقارنة مع الفترة السابقة بنفس الطول */
-    const comparison = useMemo(() => {
-        const prev = previousPeriod(series, range, custom);
-        if (!prev.length || !ranged.length) return null;
-        const sum = (rows, k) => rows.reduce((s, p) => s + (p[k] || 0), 0);
-        const ci = sum(ranged, 'income'), ce = sum(ranged, 'expense');
-        const pi = sum(prev, 'income'), pe = sum(prev, 'expense');
-        const pct = (c, p) => (p > 0 ? ((c - p) / p) * 100 : null);
-        return { incPct: pct(ci, pi), expPct: pct(ce, pe) };
-    }, [series, range, custom, ranged]);
+    /* ★ المقارنة مع الفترة السابقة — جات من الـ Backend في KPIs */
+    /* ما بقاش نحسبوها هنا */
 
     const peaks = useMemo(() => {
         if (!points.length) return {};
@@ -219,14 +212,12 @@ export default function AdvancedFlowChart({
     }, [points, seriesAverages]);
 
     const tickInterval = chartData.length > 11 ? Math.ceil(chartData.length / 9) - 1 : 0;
-
     const activeDotFn = (key, color) => (props) => {
         const { cx, cy, payload, index } = props;
         if (cx == null || cy == null || !((payload?.[key] || 0) > 0)) return <g key={`${key}-d${index}`} />;
         return <circle key={`${key}-d${index}`} cx={cx} cy={cy} r={3} fill={color} stroke={C.card} strokeWidth={1} />;
     };
 
-    /* ★ تصدير CSV للفترة المعروضة */
     const exportCsv = () => {
         const rows = [['date', 'income', 'expense', 'net', 'cumulative'], ...points.map((p) => [p.date, p.income, p.expense, p.net, p.cumulative])];
         const blob = new Blob(['\uFEFF' + rows.map((r) => r.join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
@@ -237,11 +228,20 @@ export default function AdvancedFlowChart({
         URL.revokeObjectURL(a.href);
     };
 
-    const pickCustom = () => {
-        if (!custom.from && series.length) {
-            setCustom({ from: iso(new Date(Date.now() - 29 * 86400000)), to: iso(new Date()) });
+    /* ★ تغيير المدة → نادِ الأب باش يعيد تحميل البيانات */
+    const changeRange = (key) => {
+        if (key === 'custom') {
+            if (!custom.from && series.length) {
+                setCustom({ from: iso(new Date(Date.now() - 29 * 86400000)), to: iso(new Date()) });
+            }
+            onRangeChange?.('custom', custom);
+        } else {
+            onRangeChange?.(key, null);
         }
-        setRange('custom');
+    };
+
+    const applyCustom = () => {
+        onRangeChange?.('custom', custom);
     };
 
     const DeltaChip = ({ pct, invert, label }) => {
@@ -292,16 +292,16 @@ export default function AdvancedFlowChart({
                 </div>
             </div>
 
-            {/* ★ RANGE ROW: قوالب جاهزة + مخصص بتواريخ + مقارنة + تصدير */}
+            {/* ★ RANGE ROW */}
             <div className="flex flex-wrap items-center gap-1.5 px-4 py-2.5 border-b" style={{ borderColor: C.b }}>
                 {Object.entries(RANGE_DEFS).map(([key, def]) => key === 'custom' ? (
-                    <button key={key} type="button" onClick={pickCustom}
+                    <button key={key} type="button" onClick={() => changeRange(key)}
                         className={`${F.head} flex items-center gap-1.5 text-[0.72rem] font-semibold px-2.5 py-1 border transition-colors`}
                         style={range === key ? { borderColor: C.amber, color: C.void, background: C.amber } : { borderColor: C.amber, color: C.amber }}>
                         <IcoCalendar /> {def.label}
                     </button>
                 ) : (
-                    <button key={key} type="button" onClick={() => setRange(key)}
+                    <button key={key} type="button" onClick={() => changeRange(key)}
                         className={`${F.head} text-[0.72rem] font-semibold px-2.5 py-1 border transition-colors`}
                         style={range === key ? { borderColor: C.green, color: C.void, background: C.green } : { borderColor: C.b, color: C.t2 }}>
                         {def.label}
@@ -319,15 +319,11 @@ export default function AdvancedFlowChart({
                             onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))}
                             className={`${F.mono} text-[0.65rem] px-2 py-1 border outline-none`}
                             style={{ background: C.card2, borderColor: C.b, color: C.t2, colorScheme: 'dark' }} />
-                    </span>
-                )}
-
-                {/* مقارنة مع الفترة السابقة */}
-                {comparison && (
-                    <span className="flex items-center gap-1.5 ms-2">
-                        <span className={`${F.mono} text-[0.55rem] tracking-[1px]`} style={{ color: C.t4 }}>مقابل السابقة:</span>
-                        <DeltaChip pct={comparison.incPct} label="دخل" />
-                        <DeltaChip pct={comparison.expPct} invert label="صرف" />
+                        <button type="button" onClick={applyCustom}
+                            className={`${F.head} text-[0.65rem] font-bold px-2 py-1 border`}
+                            style={{ borderColor: C.green, color: C.green }}>
+                            تطبيق
+                        </button>
                     </span>
                 )}
 
@@ -344,6 +340,7 @@ export default function AdvancedFlowChart({
                     <IcoChevron style={{ transform: optionsOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
                 </button>
             </div>
+
 
             {/* OPTIONS + ANALYTICS */}
             {optionsOpen && (
