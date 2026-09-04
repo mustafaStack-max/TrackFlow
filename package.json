@@ -23,6 +23,7 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "echarts": "^6.1.0",
         "lucide-react": "^1.39.0",
         "recharts": "^3.10.1"
     }
