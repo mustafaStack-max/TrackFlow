@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
+use App\Models\Category;
 use App\Models\Transaction;
 use App\Services\TransactionService;
 use Exception;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate ;
 
 class TransactionController extends Controller
@@ -19,17 +19,26 @@ class TransactionController extends Controller
     )
     {}
 
-    public function index(Request $request)
-    {
-        $transactions = $request->user()->transactions()->with(['category', 'account'])->latest()->get();
+public function index(Request $request)
+{
+    $user = $request->user();
 
-        return Inertia::render('Transactions', [
-            'transactions' => $transactions,
-            'categories' => $request->user()->categories,
-            'accounts' => $request->user()->accounts,
-        ]);
-    }
+    $transactions = $user->transactions()->with(['category', 'account'])->latest()->get();
 
+    return Inertia::render('Transactions', [
+        'transactions' => $transactions,
+
+        /* ★ الخاصة بالمستخدم + النظامية معًا */
+        'categories' => Category::where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)->orWhere('is_system', true);
+            })
+            ->orderByDesc('is_system')   // النظامية أولًا
+            ->orderBy('name')
+            ->get(['id', 'name', 'color_hex', 'icon', 'is_system']),
+
+        'accounts' => $user->accounts,
+    ]);
+}
 
 
 public function store(StoreTransactionRequest $request)
@@ -52,7 +61,7 @@ public function store(StoreTransactionRequest $request)
         Gate::authorize('update' , $transaction) ;
         try 
         {
-            $this->transactionService->update($transaction ,  $request->validated()) ;
+          $e =  $this->transactionService->update($transaction ,  $request->validated()) ;
         }catch (Exception $e)
         {
             return redirect()->back()->withErrors(['amount' => $e->getMessage()]) ;

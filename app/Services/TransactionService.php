@@ -22,7 +22,7 @@ class TransactionService {
     }
 
 
-    public function update (Transaction $transaction , array $data ) : bool
+    public function update (Transaction $transaction , array $data ) 
     {
 
         return DB::transaction(function () use ($transaction , $data) {
