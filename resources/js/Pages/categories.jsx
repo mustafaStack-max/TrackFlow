@@ -3,7 +3,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
 
-/* ── مكتبة أيقونات SVG حقيقية للتصنيفات ── */
+/* ── مكتبة أيقونات SVG للتصنيفات ── */
 const CAT_ICONS = {
     food:      (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M5 3v14M5 10h2M13 3c1.5 0 3 1.5 3 3.5V10c0 1-.8 1.8-1.8 1.8H13V17" strokeLinecap="round" strokeLinejoin="round"/></svg>),
     shopping:  (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M5 6h10l1 11H4L5 6z" strokeLinejoin="round"/><path d="M7 6a3 3 0 0 1 6 0" strokeLinecap="round"/></svg>),
@@ -20,7 +20,6 @@ const CAT_ICONS = {
     invest:    (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M3 16V6M7 16V9M11 16V4M15 16v-7" strokeLinecap="round"/><path d="M3 6l4 3 4-5 4 3" strokeLinecap="round" strokeLinejoin="round"/></svg>),
     default:   (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2" strokeLinecap="round"/></svg>),
 };
-
 const ICON_KEYS = Object.keys(CAT_ICONS).filter(k => k !== 'default');
 
 /* أيقونات واجهة المستخدم */
@@ -31,9 +30,10 @@ const IcoSearch = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="
 const IcoCheck = (p) => (<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" {...p}><path d="M6 10l2.5 2.5L14 7" strokeLinecap="round" strokeLinejoin="round"/></svg>);
 const IcoClose = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" {...p}><path d="M5 5l10 10M15 5L5 15" strokeLinecap="round"/></svg>);
 const IcoWarn = (p) => (<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M10 2l8 14H2L10 2z" strokeLinejoin="round"/><path d="M10 8v3M10 14v1" strokeLinecap="round"/></svg>);
-const IcoTrend = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M3 15l5-5 3 3 6-7M13 6h4v4" strokeLinecap="round" strokeLinejoin="round"/></svg>);
-const IcoShield = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M10 2l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V5l7-3z" strokeLinejoin="round"/></svg>);
+const IcoTrend = (p) => (<svg width="10" height="10" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" {...p}><path d="M3 15l5-5 3 3 6-7M13 6h4v4" strokeLinecap="round" strokeLinejoin="round"/></svg>);
+const IcoShield = (p) => (<svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M10 2l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V5l7-3z" strokeLinejoin="round"/></svg>);
 const IcoPalette = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M10 2a8 8 0 1 0 0 16c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2.5-1.5H15a3 3 0 0 0 3-3 8 8 0 0 0-8-7z" strokeLinejoin="round"/><circle cx="7" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="14" cy="10" r="1" fill="currentColor" stroke="none"/></svg>);
+const IcoStack = (p) => (<svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M10 3l7 3.5L10 10 3 6.5 10 3zM3 10l7 3.5L17 10M3 13.5l7 3.5 7-3.5" strokeLinejoin="round"/></svg>);
 
 const PALETTE = [
     '#00e676', '#00d4ff', '#ffab00', '#ff3d5a', '#b388ff',
@@ -43,7 +43,7 @@ const PALETTE = [
 
 const FILTERS = {
     all:    { label: 'الكل', icon: null },
-    system: { label: 'النظام', icon: <IcoShield /> },
+    system: { label: 'النظام', icon: <IcoShield width="10" height="10" /> },
     custom: { label: 'مخصص', icon: <IcoPalette /> },
 };
 
@@ -134,33 +134,28 @@ export default function Categories({ Categories = [] }) {
     return (
         <AuthenticatedLayout>
             <Head title="إدارة التصنيفات" />
-            <div dir="rtl" className="flex flex-col gap-6">
+            <div dir="rtl" className="flex flex-col gap-5">
 
-                {/* ★ HEADER هادئ — عنوان بسيط + زر أخضر مصمت */}
-                <div className="flex flex-wrap items-center justify-between gap-4">
+                {/* ══ HEADER ══ */}
+                <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
-                        <h1 className={`${F.ar} text-[1.35rem] font-bold`} style={{ color: C.t1 }}>التصنيفات</h1>
-                        <p className={`${F.ar} mt-1 text-[0.82rem]`} style={{ color: C.t3 }}>
-                            نظّم معاملاتك بفئات واضحة ومعبرة
-                        </p>
+                        <div className={`${F.head} text-[1.3rem] font-bold tracking-[3px] uppercase flex items-center gap-2.5`} style={{ color: C.t1 }}>
+                            <span style={{ color: C.green }}><IcoStack width="18" height="18" /></span>
+                            إدارة <em className="not-italic" style={{ color: C.green }}>التصنيفات</em>
+                        </div>
+                        <div className={`${F.mono} text-[0.72rem] tracking-[2px] mt-1`} style={{ color: C.t4 }}>
+                            // CATEGORIES MANAGEMENT // ORGANIZE YOUR TRANSACTIONS
+                        </div>
                     </div>
                     <button type="button" onClick={openCreate}
-                        className="flex items-center gap-2 rounded-md px-4 py-2.5 text-[0.82rem] font-bold transition-all hover:brightness-110"
-                        style={{ background: C.green, color: C.void }}>
+                        className={`${F.head} flex items-center gap-1.5 border px-[16px] py-[7px] text-[0.82rem] font-bold tracking-[1.5px] uppercase transition-colors hover:bg-[#00e676] hover:text-[#040507]`}
+                        style={{ borderColor: C.green, color: C.green }}>
                         <IcoPlus /> تصنيف جديد
                     </button>
                 </div>
 
-                {/* TOAST */}
-                {message && (
-                    <div className={`${F.ar} border p-2.5 text-[0.75rem]`}
-                        style={{ borderColor: `${C.green}55`, color: C.green, background: C.greenTrace }}>
-                        ✓ {message}
-                    </div>
-                )}
-
-                {/* ★ STATS — حاوية واحدة، أرقام بيضاء، لون في النقاط فقط */}
-                <div className="grid grid-cols-2 overflow-hidden rounded-lg border md:grid-cols-4"
+                {/* ══ STATS — أرقام بيضاء + عناوين t4 + نقاط ملونة صغيرة فقط ══ */}
+                <div className="grid grid-cols-2 overflow-hidden border md:grid-cols-4"
                     style={{ background: C.card, borderColor: C.b }}>
                     {[
                         { l: 'إجمالي التصنيفات', v: stats.total, dot: C.cyan, s: 'تصنيف' },
@@ -171,7 +166,7 @@ export default function Categories({ Categories = [] }) {
                         <div key={x.l} className="p-4" style={{ borderInlineStart: i ? `1px solid ${C.b}` : undefined }}>
                             <div className="flex items-center gap-1.5">
                                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: x.dot }} />
-                                <span className={`${F.ar} text-[0.75rem]`} style={{ color: C.t4 }}>{x.l}</span>
+                                <span className={`${F.ar} text-[0.72rem]`} style={{ color: C.t4 }}>{x.l}</span>
                             </div>
                             <div className="mt-1.5 flex items-baseline gap-1.5">
                                 <span className={`${F.mono} text-[1.2rem] font-bold`} style={{ color: C.t1 }}>{x.v}</span>
@@ -181,7 +176,7 @@ export default function Categories({ Categories = [] }) {
                     ))}
                 </div>
 
-                {/* TOOLBAR: بحث + فلترة */}
+                {/* ══ TOOLBAR ══ */}
                 <div className="flex flex-wrap items-center gap-3 border p-3" style={{ background: C.card, borderColor: C.b }}>
                     <div className="flex flex-1 items-center gap-2 border px-3 py-2 min-w-[220px]" style={{ borderColor: C.b, background: C.card2 }}>
                         <span style={{ color: C.t4 }}><IcoSearch /></span>
@@ -212,7 +207,7 @@ export default function Categories({ Categories = [] }) {
                     </div>
                 </div>
 
-                {/* GRID */}
+                {/* ══ GRID ══ */}
                 {filtered.length === 0 ? (
                     <div className="border p-12 text-center" style={{ background: C.card, borderColor: C.b }}>
                         <div className={`${F.mono} text-[0.75rem] tracking-[2px]`} style={{ color: C.t4 }}>
@@ -227,97 +222,95 @@ export default function Categories({ Categories = [] }) {
                             const Icon = CAT_ICONS[category.icon] || CAT_ICONS.default;
                             const usage = category.usage_count || 0;
                             const isTop = category.id === topId && usage > 0;
+                            const pct = stats.top && stats.top.usage_count > 0
+                                ? (usage / stats.top.usage_count) * 100 : 0;
+
                             return (
                                 <div key={category.id}
-                                    className="relative overflow-hidden border p-4 transition-all duration-200 hover:-translate-y-px"
-                                    style={{ background: C.card, borderColor: C.b }}>
-                                    <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: color }} />
+                                    className="relative p-4 transition-all duration-200 hover:-translate-y-px group"
+                                    style={{ background: C.card2, border: `1px solid ${C.b}` }}
+                                    onMouseEnter={e => e.currentTarget.style.borderColor = C.bHot}
+                                    onMouseLeave={e => e.currentTarget.style.borderColor = C.b}>
 
-                                    <div className="flex items-start justify-between gap-2 mt-1 mb-3">
-                                        <div className="flex h-10 w-10 items-center justify-center border shrink-0"
-                                            style={{ borderColor: `${color}55`, background: `${color}15`, color }}>
+                                    {/* ══ HEADER ══ */}
+                                    <div className="flex items-start gap-3">
+                                        {/* ★ الأيقونة: اللون هنا فقط (tint 10%) */}
+                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md"
+                                            style={{ background: `${color}14`, color }}>
                                             <Icon />
-                                        </div>
-                                        <div className="flex gap-1.5">
-                                            {isSystem ? (
-                                                <span className={`${F.mono} text-[0.52rem] tracking-[2px] border px-1.5 py-0.5`}
-                                                    style={{ borderColor: `${C.green}44`, color: C.green, background: C.greenTrace }}>
-                                                    SYSTEM
-                                                </span>
-                                            ) : (
-                                                <>
-                                                    <button type="button" title="تعديل" onClick={() => openEdit(category)}
-                                                        className="flex h-7 w-7 items-center justify-center border transition-colors"
-                                                        style={{ borderColor: C.b, color: C.t3 }}
-                                                        onMouseEnter={e => { e.currentTarget.style.color = C.gold; e.currentTarget.style.borderColor = `${C.gold}66`; }}
-                                                        onMouseLeave={e => { e.currentTarget.style.color = C.t3; e.currentTarget.style.borderColor = C.b; }}>
-                                                        <IcoEdit />
-                                                    </button>
-                                                    <button type="button" title="حذف" onClick={() => setConfirmDelete(category)}
-                                                        className="flex h-7 w-7 items-center justify-center border transition-colors"
-                                                        style={{ borderColor: C.b, color: C.t3 }}
-                                                        onMouseEnter={e => { e.currentTarget.style.color = C.red; e.currentTarget.style.borderColor = `${C.red}66`; }}
-                                                        onMouseLeave={e => { e.currentTarget.style.color = C.t3; e.currentTarget.style.borderColor = C.b; }}>
-                                                        <IcoDel />
-                                                    </button>
-                                                </>
-                                            )}
-                                            {isTop && (
-                                                <span className={`${F.mono} text-[0.52rem] tracking-[1px] border px-1.5 py-0.5 flex items-center gap-1`}
-                                                    style={{ borderColor: `${C.amber}66`, color: C.amber, background: `${C.amber}15` }}>
-                                                    <IcoTrend width="10" height="10" /> TOP
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className={`${F.head} text-[0.95rem] font-bold mb-0.5`} style={{ color: C.t1 }}>
-                                        {category.name}
-                                    </div>
-                                    {category.icon && category.icon !== 'default' && (
-                                        <div className={`${F.mono} text-[0.6rem] tracking-[1px] uppercase mb-2`} style={{ color }}>
-                                            {category.icon}
-                                        </div>
-                                    )}
-
-                                    <div className="flex items-center justify-between border-t pt-2 mt-2" style={{ borderColor: C.b }}>
-                                        <span className={`${F.mono} text-[0.6rem] tracking-[1px]`} style={{ color: C.t4 }}>USAGE</span>
-                                        <span className={`${F.mono} text-[0.78rem] font-bold`} style={{ color: C.t1 }}>
-                                            {usage}
-                                            <span className="text-[0.55rem] font-normal ms-1" style={{ color: C.t4 }}>عملية</span>
                                         </span>
+
+                                        {/* الاسم + شارة SYSTEM (درع صغير فقط) */}
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className={`${F.head} text-[0.92rem] font-bold truncate`} style={{ color: C.t1 }}>
+                                                    {category.name}
+                                                </span>
+                                                {isSystem && <IcoShield style={{ color: C.t4, flexShrink: 0 }} />}
+                                            </div>
+                                            <div className={`${F.mono} text-[0.6rem] mt-0.5`} style={{ color: C.t4 }}>
+                                                {usage} عملية
+                                            </div>
+                                        </div>
+
+                                        {/* ★ أزرار Edit/Delete: تظهر بوضوح عند hover */}
+                                        {!isSystem && (
+                                            <div className="flex gap-1.5 shrink-0">
+                                                <button type="button" title="تعديل" onClick={() => openEdit(category)}
+                                                    className="flex h-7 w-7 items-center justify-center border transition-colors"
+                                                    style={{ borderColor: C.b, color: C.t3 }}
+                                                    onMouseEnter={e => { e.currentTarget.style.color = C.gold; e.currentTarget.style.borderColor = `${C.gold}66`; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.color = C.t3; e.currentTarget.style.borderColor = C.b; }}>
+                                                    <IcoEdit />
+                                                </button>
+                                                <button type="button" title="حذف" onClick={() => setConfirmDelete(category)}
+                                                    className="flex h-7 w-7 items-center justify-center border transition-colors"
+                                                    style={{ borderColor: C.b, color: C.t3 }}
+                                                    onMouseEnter={e => { e.currentTarget.style.color = C.red; e.currentTarget.style.borderColor = `${C.red}66`; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.color = C.t3; e.currentTarget.style.borderColor = C.b; }}>
+                                                    <IcoDel />
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* ★ TOP badge — تبقى لأنها تضيف قيمة */}
+                                        {isTop && (
+                                            <span className={`${F.mono} text-[0.52rem] font-bold tracking-[1px] px-1.5 py-0.5 border flex items-center gap-1 shrink-0`}
+                                                style={{ borderColor: `${C.amber}66`, color: C.amber, background: `${C.amber}15` }}>
+                                                <IcoTrend /> TOP
+                                            </span>
+                                        )}
                                     </div>
 
-                                    {/* شريط التقدم — النسبة من أعلى استخدام */}
-                                    {stats.top && (
-                                        <div className="mt-2 h-1 overflow-hidden" style={{ background: `${color}15` }}>
-                                            <div className="h-full transition-all duration-500"
-                                                style={{
-                                                    width: `${stats.top.usage_count > 0 ? (usage / stats.top.usage_count) * 100 : 0}%`,
-                                                    background: color,
-                                                }} />
-                                        </div>
-                                    )}
+                                    {/* ★ شريط التقدم: مسار محايد + تعبئة بشفافية 0.75 */}
+                                    <div className="mt-3 h-1 rounded-full overflow-hidden"
+                                        style={{ background: 'rgba(148,163,184,0.08)' }}>
+                                        <div className="h-full rounded-full transition-all duration-500"
+                                            style={{
+                                                width: `${pct}%`,
+                                                background: color,
+                                                opacity: 0.75,
+                                            }} />
+                                    </div>
                                 </div>
                             );
                         })}
 
-                        {/* بطاقة إضافة جديدة */}
+                        {/* ══ بطاقة إضافة جديدة — إطار متقطع محايد (t4) ══ */}
                         <button type="button" onClick={openCreate}
-                            className="flex min-h-[180px] flex-col items-center justify-center gap-2.5 border-2 border-dashed transition-colors hover:bg-white/[0.03]"
-                            style={{ borderColor: `${C.cyan}55` }}>
-                            <span style={{ color: C.cyan, opacity: 0.6 }}><IcoPlus width="24" height="24" /></span>
-                            <span className={`${F.head} text-[0.85rem] tracking-[1.5px] uppercase`} style={{ color: C.cyan }}>
+                            className="flex min-h-[120px] flex-col items-center justify-center gap-2 border-2 border-dashed transition-colors hover:bg-white/[0.03]"
+                            style={{ borderColor: `${C.t4}55` }}
+                            onMouseEnter={e => e.currentTarget.style.borderColor = `${C.t4}99`}
+                            onMouseLeave={e => e.currentTarget.style.borderColor = `${C.t4}55`}>
+                            <span style={{ color: C.t3, opacity: 0.7 }}><IcoPlus width="22" height="22" /></span>
+                            <span className={`${F.head} text-[0.78rem] tracking-[1.5px] uppercase`} style={{ color: C.t3 }}>
                                 تصنيف جديد
-                            </span>
-                            <span className={`${F.mono} text-[0.55rem] tracking-[1px]`} style={{ color: C.t4 }}>
-                                + CREATE NEW
                             </span>
                         </button>
                     </div>
                 )}
 
-                {/* MODAL (إنشاء / تعديل) */}
+                {/* ══ MODAL (إنشاء / تعديل) ══ */}
                 {isModalOpen && (
                     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
                         onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}>
@@ -335,13 +328,12 @@ export default function Categories({ Categories = [] }) {
                                     <IcoClose />
                                 </button>
                             </div>
-
                             <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5">
                                 {/* معاينة حية */}
                                 <div className="flex items-center gap-3 border p-3" style={{ borderColor: C.b, background: C.card2 }}>
-                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center border"
-                                        style={{ borderColor: `${data.color_hex}66`, background: `${data.color_hex}15`, color: data.color_hex }}>
-                                        <PreviewIcon />
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md"
+                                        style={{ background: `${data.color_hex}14`, color: data.color_hex }}>
+                                        <PreviewIcon width="20" height="20" />
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <div className={`${F.head} text-[0.95rem] font-bold truncate`} style={{ color: C.t1 }}>
@@ -376,7 +368,7 @@ export default function Categories({ Categories = [] }) {
                                             const active = data.icon === key;
                                             return (
                                                 <button type="button" key={key} title={key} onClick={() => setData('icon', key)}
-                                                    className="flex aspect-square items-center justify-center border transition-all"
+                                                    className="flex aspect-square items-center justify-center border rounded-sm transition-all"
                                                     style={{
                                                         borderColor: active ? data.color_hex : C.b,
                                                         background: active ? `${data.color_hex}15` : 'transparent',
@@ -397,7 +389,7 @@ export default function Categories({ Categories = [] }) {
                                     <div className="flex flex-wrap gap-2 border p-3" style={{ borderColor: C.b, background: C.card2 }}>
                                         {PALETTE.map(c => (
                                             <button type="button" key={c} title={c} onClick={() => setData('color_hex', c)}
-                                                className="h-8 w-8 border-2 transition-all hover:scale-110"
+                                                className="h-8 w-8 rounded-sm border-2 transition-all hover:scale-110"
                                                 style={{
                                                     background: c,
                                                     borderColor: data.color_hex === c ? C.t1 : 'transparent',
@@ -420,7 +412,7 @@ export default function Categories({ Categories = [] }) {
                     </div>
                 )}
 
-                {/* CONFIRM DELETE MODAL */}
+                {/* ══ CONFIRM DELETE MODAL ══ */}
                 {confirmDelete && (
                     <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
                         onClick={(e) => e.target === e.currentTarget && setConfirmDelete(null)}>
@@ -457,7 +449,7 @@ export default function Categories({ Categories = [] }) {
                     </div>
                 )}
 
-                {/* TOAST */}
+                {/* ══ TOAST ══ */}
                 {toast && (
                     <div className="fixed bottom-6 left-1/2 z-[3000] flex -translate-x-1/2 items-center gap-2.5 border px-5 py-2.5 shadow-2xl"
                         style={{ background: C.card, borderColor: C.green }}>
