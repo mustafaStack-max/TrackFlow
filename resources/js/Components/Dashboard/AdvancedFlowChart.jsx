@@ -3,7 +3,8 @@ import { useId, useMemo, useState } from 'react';
 import { ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceDot, Brush } from 'recharts';
 import { COLORS as C, FONT as F } from './theme';
 import { fmtMAD, fmtAxis } from './format';
-import { RANGE_DEFS, GRANULARITY_DEFS, applyRange, previousPeriod, autoGranularity, bucketSeries, average, projectSeries, extendDates } from './aggregate';
+import { RANGE_DEFS, GRANULARITY_DEFS, autoGranularity, bucketSeries, average, projectSeries, extendDates } from './aggregate';
+import { useChartPrefs } from './useChartPrefs';
 
 export const FLOW_SERIES = [
     { key: 'income', label: 'المداخيل', legendLabel: 'المداخيل', color: C.green },
@@ -126,41 +127,48 @@ export default function AdvancedFlowChart({
     title = 'مبيان المقارنة وتدفق السيولة المالية',
     subtitle = 'تابع مسار المداخيل مقابل المصاريف في الزمن الحقيقي مع منحنيات النمو والفائض المالي',
     periodLabel,
-    range = 'month',          // ★ المدة المختارة (من الأب)
-    customFrom = null,        // ★ للفترة المخصصة
-    customTo = null,          // ★ للفترة المخصصة
-    onRangeChange,            // ★ callback لتغيير المدة
-    defaultGranularity = 'auto',
+    range = 'month',
+    customFrom = null,
+    customTo = null,
+    onRangeChange,
     defaultBudgetCeiling,
 }) {
     const gid = useId().replace(/[^a-zA-Z0-9]/g, '');
     const iso = (d) => d.toISOString().slice(0, 10);
-    const [granularity, setGranularity] = useState(defaultGranularity);
+
+    /* ★★ كل الإعدادات جاية من localStorage عبر useChartPrefs ★★ */
+    const [prefs, setPrefs] = useChartPrefs();
     const [custom, setCustom] = useState({ from: customFrom || '', to: customTo || '' });
     const [optionsOpen, setOptionsOpen] = useState(false);
-    const [curveType, setCurveType] = useState('monotone');
-    const [showPredictions, setShowPredictions] = useState(false);
-    const [showBudgetCeiling, setShowBudgetCeiling] = useState(true);
-    const [showAverageLines, setShowAverageLines] = useState(false);
-    const [showBrush, setShowBrush] = useState(false);
-    const [showDots, setShowDots] = useState(false);
-    const [showPeaks, setShowPeaks] = useState(false);
-    const [visibleSeries, setVisibleSeries] = useState({ income: true, expense: true, net: true, cumulative: true });
+
+    /* تفكيك الإعدادات للقراءة السهلة */
+    const {
+        granularity,
+        curveType,
+        showPredictions,
+        showBudgetCeiling,
+        budgetCeiling: savedCeiling,
+        showAverageLines,
+        showBrush,
+        showDots,
+        showPeaks,
+        visibleSeries,
+    } = prefs;
+
+    /* حساب سقف الميزانية الافتراضي */
     const avgExpenseAll = useMemo(() => average(series.map((s) => s.expense)), [series]);
-    const [budgetCeiling, setBudgetCeiling] = useState(
-        defaultBudgetCeiling ?? (avgExpenseAll > 0 ? Math.round((avgExpenseAll * 1.3) / 100) * 100 : 8000)
-    );
+    const autoBudgetCeiling = avgExpenseAll > 0 ? Math.round((avgExpenseAll * 1.3) / 100) * 100 : 8000;
+    const budgetCeiling = savedCeiling ?? defaultBudgetCeiling ?? autoBudgetCeiling;
 
-    const toggleSeries = (key) => setVisibleSeries((v) => ({ ...v, [key]: !v[key] }));
+    /* ★ Helpers لتحديث الإعدادات ★★ */
+    const toggleSeries = (key) =>
+        setPrefs((p) => ({ ...p, visibleSeries: { ...p.visibleSeries, [key]: !p.visibleSeries[key] } }));
 
-    /* ★ Series جايين من السيرفلر مفلترين — ما بقاش applyRange هنا */
-    const ranged = series; // ★ البيانات جات مفلترة من الـ Backend
+    /* ★ البيانات جات مفلترة من الـ Backend */
+    const ranged = series;
 
     const effGranularity = granularity === 'auto' ? autoGranularity(ranged.length) : granularity;
     const points = useMemo(() => bucketSeries(ranged, effGranularity), [ranged, effGranularity]);
-
-    /* ★ المقارنة مع الفترة السابقة — جات من الـ Backend في KPIs */
-    /* ما بقاش نحسبوها هنا */
 
     const peaks = useMemo(() => {
         if (!points.length) return {};
@@ -228,7 +236,7 @@ export default function AdvancedFlowChart({
         URL.revokeObjectURL(a.href);
     };
 
-    /* ★ تغيير المدة → نادِ الأب باش يعيد تحميل البيانات */
+    /* ★ تغيير المدة → يحفظ في localStorage وينادي الأب */
     const changeRange = (key) => {
         if (key === 'custom') {
             if (!custom.from && series.length) {
@@ -242,19 +250,6 @@ export default function AdvancedFlowChart({
 
     const applyCustom = () => {
         onRangeChange?.('custom', custom);
-    };
-
-    const DeltaChip = ({ pct, invert, label }) => {
-        if (pct == null) return null;
-        const up = pct >= 0;
-        const good = invert ? !up : up;
-        return (
-            <span className={`${F.mono} flex items-center gap-1 text-[0.6rem] px-1.5 py-0.5 border`}
-                style={{ borderColor: `${good ? C.green : C.red}55`, color: good ? C.green : C.red, background: `${good ? C.green : C.red}0d` }}>
-                {up ? <IcoTrendUp /> : <IcoTrendDown />}
-                {label} {Math.abs(pct).toFixed(1)}%
-            </span>
-        );
     };
 
     return (
@@ -280,7 +275,7 @@ export default function AdvancedFlowChart({
                 </div>
                 <div className="flex items-center gap-1">
                     {Object.entries(GRANULARITY_DEFS).map(([key, def]) => (
-                        <button key={key} type="button" onClick={() => setGranularity(key)}
+                        <button key={key} type="button" onClick={() => setPrefs({ granularity: key })}
                             className={`${F.head} text-[0.75rem] font-semibold px-2.5 py-1.5 border transition-colors`}
                             style={granularity === key ? { borderColor: C.t1, color: C.t1, background: C.card2 } : { borderColor: C.b, color: C.t3 }}>
                             {def.label}
@@ -292,7 +287,7 @@ export default function AdvancedFlowChart({
                 </div>
             </div>
 
-            {/* ★ RANGE ROW */}
+            {/* RANGE ROW */}
             <div className="flex flex-wrap items-center gap-1.5 px-4 py-2.5 border-b" style={{ borderColor: C.b }}>
                 {Object.entries(RANGE_DEFS).map(([key, def]) => key === 'custom' ? (
                     <button key={key} type="button" onClick={() => changeRange(key)}
@@ -341,7 +336,6 @@ export default function AdvancedFlowChart({
                 </button>
             </div>
 
-
             {/* OPTIONS + ANALYTICS */}
             {optionsOpen && (
                 <div className="grid md:grid-cols-2 gap-5 px-4 py-4 border-b" style={{ borderColor: C.b }}>
@@ -353,7 +347,7 @@ export default function AdvancedFlowChart({
                             </span>
                             <div className="flex border" style={{ borderColor: C.b }}>
                                 {CURVE_TYPES.map((c) => (
-                                    <button key={c.value} type="button" onClick={() => setCurveType(c.value)}
+                                    <button key={c.value} type="button" onClick={() => setPrefs({ curveType: c.value })}
                                         className={`${F.ar} text-[0.65rem] font-semibold px-2.5 py-1 transition-colors`}
                                         style={curveType === c.value ? { background: C.green, color: C.void } : { color: C.t3 }}>
                                         {c.short}
@@ -362,27 +356,27 @@ export default function AdvancedFlowChart({
                             </div>
                         </div>
                         <OptionRow icon={<IcoSparkle />} label="التوقعات المستقبلية الذكية" desc="إسقاط اتجاه الفترة القادمة بخطوط متقطعة" badge
-                            checked={showPredictions} onChange={() => setShowPredictions(v => !v)} color={C.green} />
+                            checked={showPredictions} onChange={() => setPrefs(p => ({ ...p, showPredictions: !p.showPredictions }))} color={C.green} />
                         <OptionRow icon={<IcoCeiling />} label="خط سقف الميزانية الشهري" desc="حد الإنفاق الأقصى الآمن"
-                            checked={showBudgetCeiling} onChange={() => setShowBudgetCeiling(v => !v)} color={C.red}>
+                            checked={showBudgetCeiling} onChange={() => setPrefs(p => ({ ...p, showBudgetCeiling: !p.showBudgetCeiling }))} color={C.red}>
                             {showBudgetCeiling && (
                                 <div className="mt-2.5">
                                     <div className={`${F.mono} text-[0.65rem] mb-1.5 flex justify-between`} style={{ color: C.amber }}>
                                         <span>حد السقف</span><span>{fmtMAD(budgetCeiling)} MAD</span>
                                     </div>
                                     <input type="range" min={1000} max={30000} step={500} value={budgetCeiling}
-                                        onChange={(e) => setBudgetCeiling(Number(e.target.value))} className="w-full accent-[#ffc107]" />
+                                        onChange={(e) => setPrefs({ budgetCeiling: Number(e.target.value) })} className="w-full accent-[#ffc107]" />
                                 </div>
                             )}
                         </OptionRow>
                         <OptionRow icon={<IcoAvg />} label="خطوط المتوسط الحسابي" desc="متوسط كل منحنى خلال الفترة"
-                            checked={showAverageLines} onChange={() => setShowAverageLines(v => !v)} color={C.amber} />
+                            checked={showAverageLines} onChange={() => setPrefs(p => ({ ...p, showAverageLines: !p.showAverageLines }))} color={C.amber} />
                         <OptionRow icon={<IcoPeak />} label="علامات الذروة" desc="تمييز أعلى نقطة دخل وأعلى إنفاق"
-                            checked={showPeaks} onChange={() => setShowPeaks(v => !v)} color={C.gold} />
+                            checked={showPeaks} onChange={() => setPrefs(p => ({ ...p, showPeaks: !p.showPeaks }))} color={C.gold} />
                         <OptionRow icon={<IcoBrush />} label="التقريب الزمني (Zoom Brush)" desc="شريط تمرير لتحديد نافذة العرض"
-                            checked={showBrush} onChange={() => setShowBrush(v => !v)} color={C.cyan} />
+                            checked={showBrush} onChange={() => setPrefs(p => ({ ...p, showBrush: !p.showBrush }))} color={C.cyan} />
                         <OptionRow icon={<IcoDots />} label="نقاط الأيام النشطة" desc="إبراز الأيام ذات الحركة فقط"
-                            checked={showDots} onChange={() => setShowDots(v => !v)} color={C.purple} />
+                            checked={showDots} onChange={() => setPrefs(p => ({ ...p, showDots: !p.showDots }))} color={C.purple} />
                     </div>
 
                     <div>
