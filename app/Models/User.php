@@ -23,8 +23,10 @@ class User extends Authenticatable
         'username',
         'uuid' ,
         'email',
+        "avatar_url" ,
         'password',
        'avatar_url',
+       'role' ,
        'currency',
 
     ];
@@ -37,6 +39,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'role',   
+
     ];
 
     /**
