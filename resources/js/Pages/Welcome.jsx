@@ -57,10 +57,18 @@ export default function Welcome({ auth }) {
             {/* NAV */}
             <header className="sticky top-0 z-40 border-b" style={{ borderColor: C.b, background: `${C.void}d9`, backdropFilter: 'blur(10px)' }}>
                 <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-                    <div className="flex items-center gap-2.5">
-                        <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" stroke={C.green} strokeWidth="1.5" /><path d="M7 16l4-6 3 4 5-7" stroke={C.green} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        <span className={`${F.head} text-[1rem] font-bold tracking-[1.5px]`}>TRACK<span style={{ color: C.green }}>FLOW</span></span>
-                    </div>
+<div className="flex items-center gap-2.5">
+    <svg width="30" height="30" viewBox="0 0 96 96" fill="none" style={{ color: C.green }}>
+        <g stroke="currentColor" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M26 70 L48 48 L70 70" opacity="0.35" />
+            <path d="M26 52 L48 30 L70 52" opacity="0.7" />
+            <path d="M38 30 L48 20 L58 30" />
+        </g>
+    </svg>
+    <span className={`${F.head} text-[1rem] font-bold tracking-[1.5px]`}>
+        TRACK<span style={{ color: C.green }}>FLOW</span>
+    </span>
+</div>
                     <nav className="flex items-center gap-2">
                         {auth?.user
                             ? <Link href={route('dashboard')} className={btn} style={{ borderColor: `${C.green}66`, color: C.green, background: C.greenTrace }}>لوحة التحكم</Link>
@@ -75,7 +83,23 @@ export default function Welcome({ auth }) {
             {/* HERO */}
             <section className="relative mx-auto max-w-6xl px-6 pb-24 pt-20 text-center md:pt-28"
                 style={{ background: `radial-gradient(900px 320px at 50% -80px, ${C.green}0d, transparent)` }}>
-                <Reveal><span className="inline-block border px-3 py-1 text-[0.7rem]" style={{ borderColor: C.b, color: C.t3, background: C.card }}>نظام إدارة مالية شخصي · بالعربية</span></Reveal>
+                <Reveal></Reveal>
+                <Reveal delay={50} className="mb-8 flex justify-center">
+    <div className="relative inline-flex items-center justify-center">
+        {/* توهج خلفي */}
+        <div className="absolute inset-0 blur-2xl opacity-30" 
+            style={{ background: `radial-gradient(circle, ${C.green}, transparent 70%)` }} />
+        <svg width="72" height="72" viewBox="0 0 96 96" fill="none" 
+            className="relative"
+            style={{ color: C.green, filter: `drop-shadow(0 0 20px ${C.green}55)` }}>
+            <g stroke="currentColor" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M26 70 L48 48 L70 70" opacity="0.35" />
+                <path d="M26 52 L48 30 L70 52" opacity="0.7" />
+                <path d="M38 30 L48 20 L58 30" />
+            </g>
+        </svg>
+    </div>
+</Reveal>
                 <Reveal delay={100}>
                     <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-bold leading-[1.3] md:text-5xl md:leading-[1.3]" style={{ color: C.t1 }}>
                         أموالك بوضوحٍ تام،<br /><span style={{ color: C.green }}>وقراراتك بثقةٍ كاملة</span>
@@ -232,7 +256,18 @@ export default function Welcome({ auth }) {
 
             <footer className="border-t py-8" style={{ borderColor: C.b }}>
                 <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 md:flex-row">
-                    <span className={`${F.head} text-[0.8rem] font-bold tracking-[1.5px]`}>TRACK<span style={{ color: C.green }}>FLOW</span></span>
+                    <span className="flex items-center gap-2">
+    <svg width="22" height="22" viewBox="0 0 96 96" fill="none" style={{ color: C.green }}>
+        <g stroke="currentColor" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M26 70 L48 48 L70 70" opacity="0.35" />
+            <path d="M26 52 L48 30 L70 52" opacity="0.7" />
+            <path d="M38 30 L48 20 L58 30" />
+        </g>
+    </svg>
+    <span className={`${F.head} text-[0.8rem] font-bold tracking-[1.5px]`}>
+        TRACK<span style={{ color: C.green }}>FLOW</span>
+    </span>
+</span>
                     <span className={`${F.mono} text-[0.58rem] tracking-[2px]`} style={{ color: C.t4 }}>© {new Date().getFullYear()} · صُنع بعناية من أجل وضوحك المالي</span>
                 </div>
             </footer>
