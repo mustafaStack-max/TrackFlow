@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 import { SectionTitle } from '@/shared/ui';
 import { fmtMAD } from '@/shared/lib/format';
 

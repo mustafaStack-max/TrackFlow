@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
-import { RANGE_DEFS } from '@/Components/Dashboard/aggregate';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
+import { RANGE_DEFS } from '@/shared/lib/analytics';
 
 export default function RangePicker({
   value = 'month',

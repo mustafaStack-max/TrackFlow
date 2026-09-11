@@ -1,4 +1,4 @@
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 import Badge from './Badge';
 
 export default function KpiCard({

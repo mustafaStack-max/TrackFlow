@@ -1,4 +1,4 @@
-import { AR_MONTHS_SHORT } from '@/Components/Dashboard/theme';
+import { AR_MONTHS_SHORT } from '@/shared/lib/theme';
 
 const pad2 = (n) => String(n).padStart(2, '0');
 

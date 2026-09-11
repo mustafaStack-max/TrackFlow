@@ -1,13 +1,11 @@
 
 import { lazy, Suspense, useState } from 'react';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 import { Panel, ToggleGroup } from '@/shared/ui';
-import AccountBarChart from '@/Components/Dashboard/AccountBarChart';
-import SpendingHeatmap from '@/Components/Dashboard/SpendingHeatmap';
+import AccountBarChart from '../charts/AccountBarChart';
+import SpendingHeatmap from '../charts/SpendingHeatmap';
 
-const MoneyFlowSankey = lazy(() =>
-  import('@/Components/Dashboard/MoneyFlowSankey')
-);
+const MoneyFlowSankey = lazy(() => import('../charts/MoneyFlowSankey'));
 
 const VIEW_OPTIONS = [
   { value: 'accounts', label: 'حسب الحساب' },

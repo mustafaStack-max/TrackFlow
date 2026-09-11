@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 import { Switch } from '@/shared/ui';
 import {
   IcoAvg,

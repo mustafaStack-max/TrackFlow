@@ -1,4 +1,4 @@
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 import { fmtMAD } from '@/shared/lib/format';
 
 export default function TooltipBox({

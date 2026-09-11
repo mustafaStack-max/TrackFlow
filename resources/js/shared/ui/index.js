@@ -7,6 +7,9 @@ export { default as MiniStatCard } from './MiniStatCard';
 export { default as EmptyState } from './EmptyState';
 export { default as ToggleGroup } from './ToggleGroup';
 export { default as Switch } from './Switch';
+export { default as StatusBanner } from './StatusBanner';
+
+export { INSIGHT_TYPES, insightConfig } from './insightConfig';
 
 export {
   default as Skeleton,

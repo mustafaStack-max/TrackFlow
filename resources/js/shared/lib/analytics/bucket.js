@@ -1,4 +1,4 @@
-import { AR_MONTHS_SHORT } from '@/Components/Dashboard/theme';
+import { AR_MONTHS_SHORT } from '@/shared/lib/theme';
 import { dayLabel, monthLabel } from '@/shared/lib/format';
 
 export const GRANULARITY_DEFS = {

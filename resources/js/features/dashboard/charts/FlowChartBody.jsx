@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 import { ChartLegend, TooltipBox } from '@/shared/charts';
 import { fmtAxis } from '@/shared/lib/format';
 

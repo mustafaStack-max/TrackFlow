@@ -1,4 +1,4 @@
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 import { EmptyState, Panel } from '@/shared/ui';
 import { fmtMAD } from '@/shared/lib/format';
 

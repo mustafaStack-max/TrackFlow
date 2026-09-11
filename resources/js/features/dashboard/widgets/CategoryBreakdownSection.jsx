@@ -1,6 +1,6 @@
 import Panel from '@/shared/ui/Panel';
-import RankedBarChart from '@/Components/Dashboard/RankedBarChart';
-import DonutChart from '@/Components/Dashboard/DonutChart';
+import RankedBarChart from '../charts/RankedBarChart';
+import DonutChart from '../charts/DonutChart';
 
 export default function CategoryBreakdownSection({
   categoryBreakdown = [],

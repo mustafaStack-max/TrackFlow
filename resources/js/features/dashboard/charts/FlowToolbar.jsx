@@ -1,4 +1,4 @@
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 import { GranularityPicker, RangePicker } from '@/shared/components';
 import { IcoDownload } from '@/shared/icons';
 import FlowOptionsPanel from './FlowOptionsPanel';

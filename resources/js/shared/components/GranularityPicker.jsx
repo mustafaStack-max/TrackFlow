@@ -1,5 +1,6 @@
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
-import { GRANULARITY_DEFS } from '@/Components/Dashboard/aggregate';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
+
+import { GRANULARITY_DEFS } from '@/shared/lib/analytics'
 
 export default function GranularityPicker({
   value = 'auto',

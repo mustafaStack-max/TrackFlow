@@ -1,4 +1,4 @@
-import { COLORS as C } from '@/Components/Dashboard/theme';
+import { COLORS as C } from '@/shared/lib/theme';
 
 export default function Switch({
   checked,

@@ -1,5 +1,5 @@
 
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 
 export default function ChartStatCard({
   label,

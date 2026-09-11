@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { COLORS as C } from '@/Components/Dashboard/theme';
+import { COLORS as C } from '@/shared/lib/theme';
 import {
   applyRange,
   autoGranularity,
