@@ -2,7 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import Sidebar from '@/Components/Sidebar';
 import QuickAddTransaction from '@/Components/QuickAddTransaction';
-import { COLORS as C, FONT as F, getTheme, toggleTheme } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F, getTheme, toggleTheme } from '@/shared/lib/theme';
 
 const IcoSearch = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" {...p}><circle cx="9" cy="9" r="6" /><path d="M13.5 13.5L18 18" strokeLinecap="round" /></svg>);
 const IcoBell = (p) => (<svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M5 9a5 5 0 0 1 10 0c0 5 2 6 2 6H3s2-1 2-6" strokeLinejoin="round" /><path d="M8.5 17.5a1.7 1.7 0 0 0 3 0" strokeLinecap="round" /></svg>);
