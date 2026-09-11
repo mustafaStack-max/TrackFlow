@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useForm } from '@inertiajs/react';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 
 const IcoTrash = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><polyline points="4,6 16,6" strokeLinecap="round" /><path d="M8 6V4h4v2" strokeWidth="1.3" strokeLinecap="round" /><path d="M5 6l1 11h8l1-11" strokeLinecap="round" strokeLinejoin="round" /></svg>);
 const IcoAlert = (p) => (<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M10 2l8.5 15H1.5L10 2z" strokeLinejoin="round" /><path d="M10 8v4" strokeLinecap="round" /><circle cx="10" cy="14.5" r=".8" fill="currentColor" stroke="none" /></svg>);

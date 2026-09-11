@@ -1,8 +1,8 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { COLORS as C, FONT as F, AR_MONTHS_SHORT } from '@/Components/Dashboard/theme';
-import { fmtMAD } from '@/Components/Dashboard/format';
+import { COLORS as C, FONT as F, AR_MONTHS_SHORT } from '@/shared/lib/theme';
+import { fmtMAD } from '@/shared/lib/format';
 import BudgetModal from '@/Components/Budgets/BudgetModal';
 import ConfirmModal from '@/Components/Budgets/ConfirmModal';
 import BudgetVsActual from '@/Components/Budgets/BudgetVsActual';

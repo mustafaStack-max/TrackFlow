@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Transition } from '@headlessui/react';
 import { useForm } from '@inertiajs/react';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 
 const IcoLock = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="4" y="9" width="12" height="8" rx="1.5" /><path d="M7 9V6a3 3 0 0 1 6 0v3" strokeLinecap="round" /></svg>);
 const IcoShield = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M10 2l6 2v5c0 4-2.8 7-6 8.5C6.8 16 4 13 4 9V4l6-2z" strokeLinejoin="round" /><path d="M7 10l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>);

@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Head, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
-import { fmtMAD } from '@/Components/Dashboard/format';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
+import { fmtMAD } from '@/shared/lib/format';
 
 const PAGE_SIZE = 12;
 const PAYMENT_METHODS = [
