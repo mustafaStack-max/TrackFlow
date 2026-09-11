@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from '@inertiajs/react';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
-import { fmtMAD } from '@/Components/Dashboard/format';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
+import { fmtMAD } from '@/shared/lib/format';
 
 const IcoClose = (p) => (<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" {...p}><path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" /></svg>);
 const IcoSparkle = (p) => (<svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" {...p}><path d="M10 1l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" /></svg>);

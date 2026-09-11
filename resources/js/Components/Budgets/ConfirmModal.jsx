@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 
 const IcoWarn = (p) => (<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M10 2l8 14H2L10 2z" strokeLinejoin="round" /><path d="M10 8v3M10 14v1" strokeLinecap="round" /></svg>);
 

@@ -1,5 +1,5 @@
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
-import { fmtMAD } from '@/Components/Dashboard/format';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
+import { fmtMAD } from '@/shared/lib/format';
 
 const STATUS_COLOR = { ok: C.green, warning: C.amber, exceeded: C.red };
 

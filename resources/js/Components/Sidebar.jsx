@@ -1,6 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 
 /* ★★ NAV_GROUPS: قلّل العناصر "الميتة" — دمجها في قسم واحد بدل 5 عناصر مفرقة ★★ */
 const NAV_GROUPS = [

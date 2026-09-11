@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { COLORS as C, FONT as F } from '@/Components/Dashboard/theme';
-import { fmtMAD, fmtAxis } from '@/Components/Dashboard/format';
-import { bucketSeries } from '@/Components/Dashboard/aggregate';
-import { EmptyState } from '@/Components/Dashboard/Panel';
+import { COLORS as C, FONT as F } from '@/shared/lib/theme';
+import { fmtMAD, fmtAxis } from '@/shared/lib/format';
+import { bucketSeries } from '@/shared/lib/analytics';
+import { EmptyState } from '@/shared/ui/Panel';
 
 
 function TrendTooltip({ active, payload, label }) {
