@@ -7,7 +7,7 @@ use App\Services\DataExportService;
 use App\Services\DataImportService;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log ;
 
 class DataBackupController extends Controller
 {
@@ -15,10 +15,6 @@ class DataBackupController extends Controller
         protected DataExportService $exportService,
         protected DataImportService $importService
     ) {}
-
-    /**
-     * تصدير البيانات
-     */
     public function export(Request $request)
     {
         $user = $request->user();
@@ -32,16 +28,13 @@ class DataBackupController extends Controller
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
-
-    /**
-     * استيراد البيانات
-     */
     public function import(DataImportRequest $request)
     {
         $user = $request->user();
         $file = $request->file('backup_file');
 
         try {
+
             $content = file_get_contents($file->getRealPath());
             $payload = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
 
