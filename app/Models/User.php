@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -84,4 +85,47 @@ class User extends Authenticatable
     {
         return $this->hasMany(Budget::class);
     }
+
+
+
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(AgentConversation::class)
+            ->orderByDesc('updated_at');
+    }
+
+ 
+    public function activeConversations(): HasMany
+    {
+        return $this->conversations()->where('is_active', true);
+    }
+
+  
+    public function pendingActions(): HasMany
+    {
+        return $this->hasMany(PendingAction::class)
+            ->where('status', PendingAction::STATUS_PENDING)
+            ->where('expires_at', '>', now())
+            ->orderByDesc('created_at');
+    }
+
+
+    public function latestConversation(): ?AgentConversation
+    {
+        return $this->activeConversations()->first();
+    }
+
+ 
+    public function hasPendingActions(): bool
+    {
+        return $this->pendingActions()->exists();
+    }
+
+
+    public function pendingActionsCount(): int
+    {
+        return $this->pendingActions()->count();
+    }
+
 }
+
