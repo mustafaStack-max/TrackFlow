@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\DashboardController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -80,5 +82,22 @@ Route::post('/transactions' , [TransactionController::class , 'store'])->middlew
 Route::put('/transactions/{transaction:id}' , [TransactionController::class , 'update'])->middleware('auth')->name('transactions.update')  ;
 Route::delete('/transactions/{transaction:id}' , [TransactionController::class , 'destroy'])->middleware('auth')->name('transactions.destroy')  ;
 
+
+
+/* ========================================
+ * ★ AI Agent
+ * ======================================== */
+Route::middleware('auth')->group(function () {
+    Route::get('/agent', [AgentController::class, 'index'])->name('agent.index');
+    Route::post('/agent', [AgentController::class, 'create'])->name('agent.create');
+    Route::get('/agent/{uuid}', [AgentController::class, 'show'])->name('agent.show');
+    Route::post('/agent/{uuid}/chat', [AgentController::class, 'chat'])->name('agent.chat');
+    Route::post('/agent/{uuid}/close', [AgentController::class, 'close'])->name('agent.close');
+    Route::delete('/agent/{uuid}', [AgentController::class, 'destroy'])->name('agent.destroy');
+
+
+    Route::post('/agent/actions/{token}/approve', [AgentController::class, 'approveAction'])->name('agent.approve');
+    Route::post('/agent/actions/{token}/reject', [AgentController::class, 'rejectAction'])->name('agent.reject');
+});
 
 require __DIR__.'/auth.php';

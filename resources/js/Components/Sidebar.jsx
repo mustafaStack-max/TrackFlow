@@ -242,15 +242,25 @@ function ProfileSection({ collapsed, user, navSummary, onNavigated }) {
                             </Link>
                         )}
 
-                        <button type="button" disabled
-                            className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-start opacity-40 cursor-not-allowed">
-                            <span style={{ color: C.t3 }}><ICONS.gear /></span>
-                            <span className={`${F.ar} text-[0.72rem] flex-1`} style={{ color: C.t2 }}>الإعدادات</span>
-                            <span className={`${F.mono} text-[0.52rem] tracking-[1px] px-1.5 py-0.5 border`}
-                                style={{ borderColor: `${C.gold}55`, color: C.gold, background: `${C.gold}15` }}>
-                                قريبًا
-                            </span>
-                        </button>
+{route().has('settings.index') ? (
+    <Link href={route('settings.index')}
+        onClick={() => { close(); onNavigated?.(); }}
+        className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-start transition-colors hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset"
+        style={{ '--tw-ring-color': C.green }}>
+        <span style={{ color: C.t3 }}><ICONS.gear /></span>
+        <span className={`${F.ar} text-[0.72rem] flex-1`} style={{ color: C.t2 }}>الإعدادات</span>
+        <span className={`${F.mono} text-[0.52rem] tracking-[1px] px-1.5 py-0.5 border`}
+            style={{ borderColor: `${C.green}44`, color: C.green, background: `${C.green}10` }}>
+            جديد
+        </span>
+    </Link>
+) : (
+    <button type="button" disabled
+        className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-start opacity-40 cursor-not-allowed">
+        <span style={{ color: C.t3 }}><ICONS.gear /></span>
+        <span className={`${F.ar} text-[0.72rem] flex-1`} style={{ color: C.t2 }}>الإعدادات</span>
+    </button>
+)}
 
                         <div className="my-1 border-t" style={{ borderColor: C.b }} />
 
