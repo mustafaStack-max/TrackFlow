@@ -50,23 +50,35 @@ class FinancialToolsService
     }
 
     /**
-     * أرصدة جميع حسابات المستخدم
+     * أرصدة جميع حسابات المستخدم (من عمود balance مباشرة)
      */
     public function getAccountBalances(User $user): array
     {
-        $accounts = $user->accounts()->get(['id', 'name', 'type', 'balance', 'currency', 'color_hex']);
+        $accounts = $user->accounts()
+            ->orderBy('type')
+            ->get(['id', 'name', 'type', 'balance', 'currency', 'color_hex']);
+
+
+        $accountsData = $accounts->map(fn ($a) => [
+            'id' => $a->id,
+            'name' => $a->name,
+            'type' => $a->type,
+            'balance' => (float) $a->balance,
+            'currency' => $a->currency ?? 'MAD',
+            'color_hex' => $a->color_hex,
+        ])->values()->all();
+
+        $total = (float) $accounts->sum('balance');
 
         return [
-            'accounts' => $accounts->map(fn (Account $a) => [
-                'id' => $a->id,
-                'name' => $a->name,
-                'type' => $a->type,
-                'balance' => (float) $a->balance,
-                'currency' => $a->currency,
-                'color_hex' => $a->color_hex,
-            ])->values()->all(),
-            'total_balance' => (float) $accounts->sum('balance'),
+            'accounts' => $accountsData,
+            'total_balance' => round($total, 2),
             'currency' => 'MAD',
+            'INSTRUCTION' => '⚠️ قاعدة حديدية: هذه أرقام محسوبة برمجياً ودقيقة 100%. '
+                . 'انسخ كل رقم حرفياً كما هو في ردك. '
+                . 'ممنوع إعادة حساب المجموع بنفسك. '
+                . 'ممنوع اختراع تفاصيل فرعية. '
+                . 'استعمل total_balance للمجموع، و balance لكل حساب كما هو تماماً.',
         ];
     }
 
@@ -164,6 +176,247 @@ class FinancialToolsService
                 ] : null,
             ])->values()->all(),
             'count' => $transactions->count(),
+        ];
+    }
+
+        /**
+     * بحث مفلتر في المعاملات (يححل مشكلة "أعمى يرى 10 فقط")
+     */
+    public function searchTransactions(User $user, array $args): array
+    {
+        $query = $user->transactions()
+            ->with(['category:id,name,icon,color_hex', 'account:id,name,type'])
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id');
+
+        // بحث نصي في الوصف/الملاحظات/الوسوم
+        if (! empty($args['query'])) {
+            $q = '%' . $args['query'] . '%';
+            $query->where(function ($w) use ($q) {
+                $w->where('description', 'like', $q)
+                  ->orWhere('notes', 'like', $q)
+                  ->orWhere('tags', 'like', $q)
+                  ->orWhere('location', 'like', $q);
+            });
+        }
+
+        // فلاتر
+        if (! empty($args['category_id'])) {
+            $query->where('category_id', $args['category_id']);
+        }
+        if (! empty($args['account_id'])) {
+            $query->where('account_id', $args['account_id']);
+        }
+        if (! empty($args['type'])) {
+            $query->where('type', $args['type']);
+        }
+        if (isset($args['min_amount'])) {
+            $query->where('amount', '>=', $args['min_amount']);
+        }
+        if (isset($args['max_amount'])) {
+            $query->where('amount', '<=', $args['max_amount']);
+        }
+        if (! empty($args['from'])) {
+            $query->where('transaction_date', '>=', $args['from']);
+        }
+        if (! empty($args['to'])) {
+            $query->where('transaction_date', '<=', $args['to']);
+        }
+
+        $limit = min(100, max(1, (int) ($args['limit'] ?? 25)));
+        $transactions = $query->take($limit)->get();
+
+        return [
+            'count' => $transactions->count(),
+            'limit' => $limit,
+            'transactions' => $transactions->map(fn ($t) => [
+                'id' => $t->id,
+                'description' => '<user_data>' . ($t->description ?? '') . '</user_data>',
+                'amount' => (float) $t->amount,
+                'type' => $t->type,
+                'date' => $t->transaction_date->format('Y-m-d'),
+                'category' => $t->category ? ['id' => $t->category->id, 'name' => $t->category->name] : null,
+                'account' => $t->account ? ['id' => $t->account->id, 'name' => $t->account->name] : null,
+                'notes' => $t->notes ? '<user_data>' . $t->notes . '</user_data>' : null,
+            ])->values()->all(),
+            'total_amount' => round($transactions->sum(fn ($t) => $t->type === 'expense' ? -$t->amount : $t->amount), 2),
+            'INSTRUCTION' => 'هذه نتائج بحث دقيقة. انسخ الأرقام حرفياً. إذا كان العدد > 20، اعرض أهم 10 فقط واقترح تضييق البحث.',
+        ];
+    }
+
+        /**
+     * الاشتراكات والالتزامات المتكررة المكتشفة
+     * (أسهل مكسب فوري — المستخدم ينسى دائماً اشتراكات قديمة)
+     */
+    public function getRecurringExpenses(User $user, bool $includeInactive = false): array
+    {
+        // ابحث عن المعاملات المتكررة (نفس الوصف + نفس المبلغ تقريباً + ≥ 3 مرات)
+        $transactions = $user->transactions()
+            ->where('type', 'expense')
+            ->whereNull('deleted_at')
+            ->where('transaction_date', '>=', now()->subMonths(12))
+            ->get(['description', 'amount', 'transaction_date', 'category_id'])
+            ->groupBy(fn ($t) => $this->normalizeDescription($t->description));
+
+        $recurring = [];
+        foreach ($transactions as $normalized => $group) {
+            if ($group->count() < 3) {
+                continue;
+            }
+
+            // تحقق من الانتظام (معاملات متباعدة ~30 يوم ±7 أيام)
+            $dates = $group->pluck('transaction_date')->sort()->values();
+            $intervals = [];
+            for ($i = 1; $i < $dates->count(); $i++) {
+                $intervals[] = $dates[$i]->diffInDays($dates[$i - 1]);
+            }
+
+            if (empty($intervals)) {
+                continue;
+            }
+
+            $avgInterval = array_sum($intervals) / count($intervals);
+            $isRegular = $avgInterval >= 23 && $avgInterval <= 37; // شهري تقريباً
+
+            if (! $isRegular) {
+                continue;
+            }
+
+            $amounts = $group->pluck('amount');
+            $avgAmount = $amounts->avg();
+            $lastDate = $dates->last();
+            $daysSinceLast = $lastDate->diffInDays(now());
+            $isActive = $daysSinceLast <= 60;
+
+            if (! $isActive && ! $includeInactive) {
+                continue;
+            }
+
+            $recurring[] = [
+                'description' => '<user_data>' . ($group->first()->description ?? 'اشتراك') . '</user_data>',
+                'avg_amount' => round($avgAmount, 2),
+                'frequency' => 'monthly',
+                'monthly_cost' => round($avgAmount, 2),
+                'yearly_cost' => round($avgAmount * 12, 2),
+                'occurrences' => $group->count(),
+                'last_seen' => $lastDate->format('Y-m-d'),
+                'days_since_last' => (int) $daysSinceLast,
+                'is_active' => $isActive,
+                'category_id' => $group->first()->category_id,
+            ];
+        }
+
+        // ترتيب حسب التكلفة السنوية (الأكبر أولاً)
+        usort($recurring, fn ($a, $b) => $b['yearly_cost'] <=> $a['yearly_cost']);
+
+        $totalMonthly = array_sum(array_column($recurring, 'monthly_cost'));
+        $totalYearly = array_sum(array_column($recurring, 'yearly_cost'));
+
+        return [
+            'recurring' => $recurring,
+            'count' => count($recurring),
+            'total_monthly_cost' => round($totalMonthly, 2),
+            'total_yearly_cost' => round($totalYearly, 2),
+            'currency' => 'MAD',
+            'INSTRUCTION' => 'ركز على الاشتراكات غير النشطة (is_active=false) — أسهل إلغاء. '
+                . 'اعرض أعلى 5 تكلفة سنوية. اسأل المستخدم إن كان ما زال يستخدمها.',
+        ];
+    }
+
+    /**
+     * تطبيع الوصف للمقارنة (إزالة الأرقام والمسافات الزائدة)
+     */
+    protected function normalizeDescription(?string $desc): string
+    {
+        if (! $desc) {
+            return '';
+        }
+
+        return trim(preg_replace('/\d+|\s+/', ' ', mb_strtolower($desc)));
+    }
+
+public function getEmergencyFundStatus(User $user): array
+{
+    // السيولة المتاحة
+    $liquidBalance = $user->accounts()
+        ->whereIn('type', ['cash', 'bank', 'savings'])
+        ->sum('balance');
+
+    // متوسط المصروف الشهري (آخر 6 أشهر)
+    $sixMonthsAgo = now()->subMonths(6)->startOfMonth();
+    $monthlyExpenses = $user->transactions()
+        ->where('type', 'expense')
+        ->whereNull('deleted_at')
+        ->where('transaction_date', '>=', $sixMonthsAgo)
+        ->sum('amount');
+
+    $avgMonthlyExpense = $monthlyExpenses / 6;
+
+    // ★ التغطية بالأشهر — تأكد من القسمة الصحيحة
+    $monthsCovered = $avgMonthlyExpense > 0
+        ? round($liquidBalance / $avgMonthlyExpense, 1)
+        : ($liquidBalance > 0 ? 999 : 0);
+
+    // ★ أضف INSTRUCTION صارمة
+    return [
+        'liquid_balance' => round($liquidBalance, 2),
+        'avg_monthly_expense' => round($avgMonthlyExpense, 2),
+        'months_covered' => $monthsCovered,
+        'status' => match (true) {
+            $monthsCovered >= 6 => 'excellent',
+            $monthsCovered >= 3 => 'adequate',
+            $monthsCovered >= 1 => 'insufficient',
+            default => 'critical',
+        },
+        'INSTRUCTION' => '⚠️ months_covered = liquid_balance ÷ avg_monthly_expense. '
+            . 'لا تُعد الحساب. انسخ الرقم كما هو. إذا كان > 12، قل "أكثر من سنة".',
+    ];
+}
+        /**
+     * حفظ معلومة دائمة عن المستخدم
+     */
+    public function rememberFact(User $user, string $key, string $value): array
+    {
+        DB::table('agent_memories')->updateOrInsert(
+            ['user_id' => $user->id, 'key' => $key],
+            ['value' => $value, 'source' => 'agent', 'updated_at' => now(), 'created_at' => now()]
+        );
+
+        return [
+            'status' => 'saved',
+            'key' => $key,
+            'value' => $value,
+            'INSTRUCTION' => 'تم الحفظ. لا تذكر للمستخدم أنك حفظت شيئاً — استخدمه فقط في المحادثات القادمة.',
+        ];
+    }
+
+    /**
+     * استرجاع ما حُفظ سابقاً عن المستخدم
+     */
+    public function recallFacts(User $user, ?string $topic = null): array
+    {
+        $query = DB::table('agent_memories')
+            ->where('user_id', $user->id)
+            ->orderByDesc('updated_at');
+
+        if ($topic) {
+            $query->where(function ($q) use ($topic) {
+                $q->where('key', 'like', "%{$topic}%")
+                  ->orWhere('value', 'like', "%{$topic}%");
+            });
+        }
+
+        $facts = $query->take(20)->get();
+
+        return [
+            'facts' => $facts->map(fn ($f) => [
+                'key' => $f->key,
+                'value' => $f->value,
+                'source' => $f->source,
+                'updated_at' => $f->updated_at,
+            ])->values()->all(),
+            'count' => $facts->count(),
+            'INSTRUCTION' => 'استعمل هذه المعلومات لتخصيص النصيحة. لا تكرر ذكرها للمستخدم إلا إذا كانت ذات صلة مباشرة بسؤاله.',
         ];
     }
 
