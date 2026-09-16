@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\Agent\AgentToolRegistry;
+use App\Services\Agent\SkillService;
+use Illuminate\Support\Facades\RateLimiter;
 use App\Models\AgentConversation;
 use App\Models\AgentMessage;
 use App\Models\PendingAction;
@@ -22,6 +25,7 @@ class AgentController extends Controller
         protected GeminiAgentService $gemini,
         protected FinancialToolsService $tools,
         protected ActionConfirmationService $confirmation,
+        protected SkillService $skills,
     ) {}
 
     /* ================================================================
@@ -112,140 +116,72 @@ class AgentController extends Controller
         ]);
     }
 
-    public function chat(Request $request, string $uuid)
+        public function chat(Request $request, string $uuid)
     {
         $request->validate([
             'message' => ['required_without:image', 'nullable', 'string', 'max:2000'],
-            'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'], // 5MB كحد أقصى
+            'image'   => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
         ]);
 
         $user = $request->user();
 
-        $conversation = $user->conversations()
-            ->where('uuid', $uuid)
-            ->firstOrFail();
+        /* ★ حد يومي للرسائل لكل مستخدم */
+        $limitKey = 'agent.daily.' . $user->id;
+        $dailyMax = (int) config('agent.limits.daily_messages', 120);
 
-        // بناء محتوى الرسالة للمستخدم (نص + [صورة])
-        $userMessageText = $request->message ?? '';
+        if (RateLimiter::tooManyAttempts($limitKey, $dailyMax)) {
+            return redirect()->back()->with([
+                'success' => false,
+                'message' => 'وصلت إلى الحد اليومي لرسائل المساعد. حاول غداً.',
+            ]);
+        }
+        RateLimiter::hit($limitKey, now()->addDay());
+
+        $conversation = $user->conversations()->where('uuid', $uuid)->firstOrFail();
+
         $hasImage = $request->hasFile('image');
-        
+        $userText = trim((string) $request->message);
         if ($hasImage) {
-            $userMessageText = trim($userMessageText . ' [📷 صورة مرفقة]');
+            $userText = trim($userText . ' [📷 صورة مرفقة]');
         }
 
-        // 1) حفظ رسالة المستخدم
-        $userMessage = AgentMessage::add($conversation, 'user', $userMessageText ?: '[صورة]');
+        $userMessage = AgentMessage::add($conversation, 'user', $userText ?: '[صورة]');
 
-        // 2) تحديث عنوان المحادثة إذا كانت أول رسالة
         if ($conversation->messages()->where('role', 'user')->count() === 1) {
-            $title = mb_substr($userMessageText ?: 'تحليل صورة', 0, 50);
-            if (mb_strlen($userMessageText) > 50) $title .= '...';
-            $conversation->update(['title' => $title]);
+            $base = mb_substr($userText ?: 'تحليل صورة', 0, 50);
+            $conversation->update(['title' => $base . (mb_strlen($userText) > 50 ? '...' : '')]);
         }
 
         try {
-            $reply = null;
-
-            // ✅ حالة خاصة: صورة مرفقة → استخراج البيانات
             if ($hasImage) {
-                $file = $request->file('image');
-                $imageBase64 = base64_encode(file_get_contents($file->getRealPath()));
-                $mimeType = $file->getMimeType();
-
-                // استخراج البيانات من الصورة
-                $receiptData = $this->gemini->parseReceipt($imageBase64, $mimeType);
-
-                if ($receiptData) {
-                    // البيانات المستخرجة → نقترح معاملة
-                    $categories = $this->tools->getAvailableCategories($user);
-                    $accounts = $this->tools->getAccountBalances($user);
-                    
-                    // اختيار حساب افتراضي (أول حساب نقدي أو أول حساب متاح)
-                    $defaultAccount = collect($accounts['accounts'])
-                        ->firstWhere('type', 'cash') 
-                        ?? $accounts['accounts'][0] 
-                        ?? null;
-
-                    if (!$defaultAccount) {
-                        throw new Exception('لا توجد حسابات متاحة. أنشئ حساباً أولاً.');
-                    }
-
-                    // اختيار تصنيف افتراضي بناءً على الوصف (استدعاء Gemini مرة أخرى)
-                    $suggestedCategoryId = $this->suggestCategoryForDescription(
-                        $user,
-                        $receiptData['description'],
-                        $categories['categories']
-                    );
-
-                    // اقتراح المعاملة
-                    $proposeResult = $this->proposeAction(
-                        $user,
-                        $conversation,
-                        $userMessage,
-                        \App\Models\PendingAction::TYPE_CREATE_TRANSACTION,
-                        [
-                            'account_id' => $defaultAccount['id'],
-                            'category_id' => $suggestedCategoryId,
-                            'type' => $receiptData['type'],
-                            'amount' => $receiptData['amount'],
-                            'description' => $receiptData['description'],
-                            'transaction_date' => $receiptData['transaction_date'],
-                            'payment_method' => 'cash',
-                            'notes' => 'مستخرج تلقائياً من صورة ' . ($receiptData['merchant'] ?? ''),
-                        ]
-                    );
-
-                    $reply = [
-                        'interaction_id' => null,
-                        'text' => "📸 **تم تحليل الصورة بنجاح!**\n\n" .
-                                  "استخرجت البيانات التالية:\n" .
-                                  "- **المبلغ:** {$receiptData['amount']} {$receiptData['currency']}\n" .
-                                  "- **التاريخ:** {$receiptData['transaction_date']}\n" .
-                                  "- **الوصف:** {$receiptData['description']}\n" .
-                                  ($receiptData['merchant'] ? "- **المتجر:** {$receiptData['merchant']}\n" : '') .
-                                  "\n💡 أعددت خطة عمل لإضافتها كمعاملة. راجعها أدناه.",
-                        'steps' => [],
-                        'status' => 'completed',
-                        'usage' => null,
-                        'tool_calls_log' => [],
-                    ];
-                } else {
-                    $reply = [
-                        'interaction_id' => null,
-                        'text' => "⚠️ لم أتمكن من قراءة البيانات من الصورة.\n\n" .
-                                  "يرجى التأكد من أن الصورة واضحة وتحتوي على فاتورة أو إيصال قابل للقراءة.\n\n" .
-                                  "يمكنك أيضاً إدخال البيانات يدوياً.",
-                        'steps' => [],
-                        'status' => 'completed',
-                        'usage' => null,
-                        'tool_calls_log' => [],
-                    ];
-                }
+                $reply = $this->handleReceipt($user, $userMessage, $request->file('image'));
             } else {
-                // المحادثة العادية (نص فقط)
+                /* ★ تحميل مسبق للمهارات — يوفّر جولة API كاملة في أغلب الحالات */
+                $preloaded = $this->skills->loadMany($this->skills->guess($request->message));
+                $input = $preloaded
+                    ? "<loaded_skills>\n{$preloaded}\n</loaded_skills>\n\n{$request->message}"
+                    : $request->message;
+
                 $reply = $this->gemini->chatWithTools(
-                    message: $request->message,
-                    tools: $this->getToolsSchema(),
-                    executor: fn ($name, $args) => $this->executeTool($user, $conversation, $userMessage, $name, $args),
+                    message: $input,
+                    tools: AgentToolRegistry::declarations(),
+                    executor: $this->buildExecutor($user, $userMessage),
                     previousInteractionId: $conversation->gemini_interaction_id,
-                    maxRounds: 5,
+                    maxRounds: (int) config('agent.limits.max_rounds', 6),
                 );
             }
 
-            // حفظ interaction_id للمحادثات Stateful
             if (! empty($reply['interaction_id'])) {
-                $conversation->update([
-                    'gemini_interaction_id' => $reply['interaction_id'],
-                ]);
+                $conversation->update(['gemini_interaction_id' => $reply['interaction_id']]);
             }
 
-            // حفظ رد الـ Agent
             AgentMessage::add($conversation, 'assistant', $reply['text'] ?? '', [
-                'tool_calls' => $reply['tool_calls_log'] ?? [],
-                'metadata' => [
+                'tool_calls'  => $reply['tool_calls_log'] ?? [],
+                'tokens_used' => $reply['tokens_used']['total_tokens'] ?? null, // ★ العمود مباشرة
+                'metadata'    => [
                     'interaction_id' => $reply['interaction_id'] ?? null,
-                    'has_image' => $hasImage,
-                    'status' => $reply['status'] ?? null,
+                    'tokens_used'    => $reply['tokens_used'] ?? null,
+                    'has_image'      => $hasImage,
                 ],
             ]);
 
@@ -255,18 +191,161 @@ class AgentController extends Controller
 
         } catch (Exception $e) {
             Log::error('Agent chat failed', [
-                'user_id' => $user->id,
+                'user_id'         => $user->id,
                 'conversation_id' => $conversation->id,
-                'error' => $e->getMessage(),
+                'error'           => $e->getMessage(),
             ]);
 
-            AgentMessage::add($conversation, 'assistant',
-                "⚠️ عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى.\n\n" .
-                "التفاصيل التقنية: " . $e->getMessage()
-            );
+            AgentMessage::add($conversation, 'assistant', '⚠️ حدث خطأ أثناء معالجة طلبك. حاول مرة أخرى.');
 
             return redirect()->back();
         }
+    }
+        /* ================================================================
+     * ★ الـ executor الجديد: حاجز برمجي بين القراءة والكتابة
+     * ================================================================ */
+    protected function buildExecutor(User $user, AgentMessage $userMessage): callable
+    {
+        return function (string $name, array $args) use ($user, $userMessage) {
+            // 1) أدوات النظام: تحميل مهارة عند الطلب
+            if ($name === 'load_skill') {
+                return [
+                    'skill'   => $args['skill'] ?? null,
+                    'content' => $this->skills->load((string) ($args['skill'] ?? '')),
+                ];
+            }
+
+            // أدوات النظام المبنية
+            if ($name === 'remember_fact') {
+                return $this->tools->rememberFact(
+                    $user,
+                    $args['key'] ?? '',
+                    $args['value'] ?? ''
+                );
+            }
+
+            // أدوات نظام غير مبنية بعد
+            if (in_array($name, ['create_chart'], true)) {
+                return ['error' => 'الأداة غير مبنية بعد — اعتذر باختصار وتابع بدونها.'];
+            }
+
+            // 2) ★ الحاجز: أي كتابة (مباشرة أو عبر propose_action) تصبح اقتراحاً فقط
+            if ($name === 'propose_action' || AgentToolRegistry::isWrite($name)) {
+                $type    = $args['action_type'] ?? $name;
+                $payload = $args['payload'] ?? $args;
+
+                try {
+                    $action = $this->confirmation->propose($user, $type, $payload, $userMessage->id);
+
+                    return [
+                        'status'          => 'awaiting_user_confirmation',
+                        'token'           => $action->token,
+                        'impact_analysis' => $action->impact_analysis,
+                        'note'            => 'لم يُنفَّذ شيء. اشرح الأثر للمستخدم واطلب تأكيده عبر أزرار الواجهة.',
+                    ];
+                } catch (Exception $e) {
+                    return ['error' => $e->getMessage()];
+                }
+            }
+
+            // 3) أدوات القراءة فقط
+            if (! AgentToolRegistry::isRead($name)) {
+                return ['error' => "أداة غير معروفة: {$name}"];
+            }
+
+            return $this->dispatchReadTool($user, $name, $args);
+        };
+    }
+
+    /* ================================================================
+     * توجيه أدوات القراءة إلى FinancialToolsService
+     * (الأدوات غير المبنية بعد ترجع error مهذباً — مقصود ومؤقت)
+     * ================================================================ */
+    protected function dispatchReadTool(User $user, string $name, array $args): array
+    {
+        return match ($name) {
+            'get_financial_summary'    => $this->tools->getFinancialSummary($user, $args['range'] ?? '30d', $args['from'] ?? null, $args['to'] ?? null),
+            'get_account_balances'     => $this->tools->getAccountBalances($user),
+            'get_top_categories'       => $this->tools->getTopCategories($user, $args['range'] ?? '30d', (int) ($args['limit'] ?? 5), $args['from'] ?? null, $args['to'] ?? null),
+            'get_budget_status'        => $this->tools->getBudgetStatus($user, $args['month'] ?? null),
+            'get_recent_transactions'  => $this->tools->getRecentTransactions($user, (int) ($args['limit'] ?? 10)),
+            'get_spending_trend'       => $this->tools->getSpendingTrend($user),
+            'get_available_categories' => $this->tools->getAvailableCategories($user),
+            'search_transactions'      => $this->tools->searchTransactions($user, $args),
+            'get_recurring_expenses'   => $this->tools->getRecurringExpenses($user, (bool) ($args['include_inactive'] ?? false)),
+            'get_emergency_fund_status' => $this->tools->getEmergencyFundStatus($user),
+            'recall_facts'             => $this->tools->recallFacts($user, $args['topic'] ?? null),
+            default                    => ['error' => "الأداة «{$name}» غير مبنية بعد. اعتذر للمستخدم باختصار واقترح بديلاً من الأدوات المتاحة."],
+        };
+    }
+
+    /* ================================================================
+     * مسار الفاتورة المصورة (OCR → اقتراح معاملة)
+     * ================================================================ */
+    protected function handleReceipt(User $user, AgentMessage $userMessage, $file): array
+    {
+        $imageBase64 = base64_encode(file_get_contents($file->getRealPath()));
+        $mimeType    = $file->getMimeType();
+
+        $receipt = $this->gemini->parseReceipt($imageBase64, $mimeType);
+
+        if (! $receipt) {
+            return [
+                'interaction_id' => null,
+                'text'           => "⚠️ لم أتمكن من قراءة بيانات واضحة من الصورة.\n\nتأكد أن الفاتورة ظاهرة بالكامل والإضاءة جيدة، أو أدخل البيانات يدوياً.",
+                'tool_calls_log' => [],
+                'tokens_used'    => null,
+            ];
+        }
+
+        $categories     = $this->tools->getAvailableCategories($user);
+        $accounts       = $this->tools->getAccountBalances($user);
+        $defaultAccount = collect($accounts['accounts'])->firstWhere('type', 'cash') ?? ($accounts['accounts'][0] ?? null);
+
+        if (! $defaultAccount) {
+            return [
+                'interaction_id' => null,
+                'text'           => 'قرأت الفاتورة، لكن لا يوجد حساب مسجل لأربطها به. أنشئ حساباً أولاً ثم أعد الإرسال.',
+                'tool_calls_log' => [],
+                'tokens_used'    => null,
+            ];
+        }
+
+        $categoryId = $this->suggestCategoryForDescription($user, $receipt['description'], $categories['categories']);
+
+        try {
+            $this->confirmation->propose($user, PendingAction::TYPE_CREATE_TRANSACTION, [
+                'account_id'       => $defaultAccount['id'],
+                'category_id'      => $categoryId,
+                'type'             => $receipt['type'],
+                'amount'           => $receipt['amount'],
+                'description'      => $receipt['description'],
+                'transaction_date' => $receipt['transaction_date'],
+                'payment_method'   => 'cash',
+                'notes'            => 'مستخرج تلقائياً من صورة' . ($receipt['merchant'] ? ' — ' . $receipt['merchant'] : ''),
+            ], $userMessage->id);
+        } catch (Exception $e) {
+            return [
+                'interaction_id' => null,
+                'text'           => "قرأت الفاتورة ({$receipt['amount']} MAD) لكن تعذّر إعداد خطة العمل: " . $e->getMessage(),
+                'tool_calls_log' => [],
+                'tokens_used'    => null,
+            ];
+        }
+
+        return [
+            'interaction_id' => null,
+            'text'           => "📸 **تم تحليل الصورة بنجاح!**\n\n"
+                . "- **المبلغ:** {$receipt['amount']} {$receipt['currency']}\n"
+                . "- **التاريخ:** {$receipt['transaction_date']}\n"
+                . "- **الوصف:** {$receipt['description']}\n"
+                . ($receipt['merchant'] ? "- **المتجر:** {$receipt['merchant']}\n" : '')
+                . "\n💡 أعددت خطة عمل لإضافتها كمعاملة — راجع بطاقة التأكيد أدناه.",
+            'tool_calls_log' => [
+                ['name' => 'parse_receipt', 'arguments' => ['mime_type' => $mimeType], 'result' => $receipt],
+            ],
+            'tokens_used' => null,
+        ];
     }
 
     /* ================================================================
@@ -404,219 +483,6 @@ class AgentController extends Controller
         ]);
     }
 
-    /* ================================================================
-     * 🛠️ تنفيذ أداة واحدة (تُستدعى من حلقة Function Calling)
-     *
-     * الأدوات "للقراءة" تُنفذ مباشرة.
-     * الأدوات "التنفيذية" تُنشئ PendingAction وتُرجع token للمستخدم.
-     * ================================================================ */
-    protected function executeTool(
-        $user,
-        AgentConversation $conversation,
-        AgentMessage $userMessage,
-        string $name,
-        array $args
-    ): array {
-        // أدوات القراءة (تنفيذ مباشر)
-        return match ($name) {
-            'get_financial_summary'     => $this->tools->getFinancialSummary(
-                $user,
-                $args['range'] ?? '30d',
-                $args['from'] ?? null,
-                $args['to'] ?? null
-            ),
-            'get_account_balances'      => $this->tools->getAccountBalances($user),
-            'get_top_categories'        => $this->tools->getTopCategories(
-                $user,
-                $args['range'] ?? '30d',
-                (int) ($args['limit'] ?? 5),
-                $args['from'] ?? null,
-                $args['to'] ?? null
-            ),
-            'get_budget_status'         => $this->tools->getBudgetStatus($user, $args['month'] ?? null),
-            'get_recent_transactions'   => $this->tools->getRecentTransactions($user, (int) ($args['limit'] ?? 10)),
-            'get_spending_trend'        => $this->tools->getSpendingTrend($user),
-            'get_available_categories'  => $this->tools->getAvailableCategories($user),
-
-            // أدوات الاقتراح (تنشئ PendingAction وتُرجع token)
-            'propose_create_transaction' => $this->proposeAction(
-                $user, $conversation, $userMessage,
-                PendingAction::TYPE_CREATE_TRANSACTION,
-                $args
-            ),
-            'propose_create_category'   => $this->proposeAction(
-                $user, $conversation, $userMessage,
-                PendingAction::TYPE_CREATE_CATEGORY,
-                $args
-            ),
-            'propose_create_budget'     => $this->proposeAction(
-                $user, $conversation, $userMessage,
-                PendingAction::TYPE_CREATE_BUDGET,
-                $args
-            ),
-
-            default => ['error' => "أداة غير معروفة: {$name}"],
-        };
-    }
-
-    /* ================================================================
-     * إنشاء إجراء معلق (PendingAction) وإرجاع ملخصه للـ Agent
-     * ================================================================ */
-    protected function proposeAction(
-        $user,
-        AgentConversation $conversation,
-        AgentMessage $userMessage,
-        string $type,
-        array $payload
-    ): array {
-        try {
-            $action = $this->confirmation->propose(
-                user: $user,
-                actionType: $type,
-                payload: $payload,
-                messageId: $userMessage->id,
-            );
-
-            return [
-                'status' => 'proposed',
-                'token' => $action->token,
-                'action_type' => $type,
-                'payload' => $payload,
-                'impact_analysis' => $action->impact_analysis,
-                'expires_at' => $action->expires_at->toIso8601String(),
-                'message' => 'تم إعداد خطة العمل. اعرضها للمستخدم ليختار: تأكيد / تعديل / إلغاء.',
-            ];
-        } catch (Exception $e) {
-            return ['error' => 'فشل إعداد الإجراء: ' . $e->getMessage()];
-        }
-    }
-
-    /* ================================================================
-     * 📐 مخطط الأدوات (Schema) الذي نرسله إلى Gemini
-     * ================================================================ */
-    protected function getToolsSchema(): array
-    {
-        return [
-            [
-                'type' => 'function',
-                'name' => 'get_financial_summary',
-                'description' => 'جلب ملخص مالي لفترة زمنية (دخل، مصروف، صافي، معدل ادخار).',
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'range' => [
-                            'type' => 'string',
-                            'description' => 'الفترة: month, 30d, 90d, 6m, ytd, 365d, all, custom',
-                        ],
-                        'from' => ['type' => 'string', 'description' => 'تاريخ البداية (Y-m-d) عند range=custom'],
-                        'to' => ['type' => 'string', 'description' => 'تاريخ النهاية (Y-m-d) عند range=custom'],
-                    ],
-                ],
-            ],
-            [
-                'type' => 'function',
-                'name' => 'get_account_balances',
-                'description' => 'جلب أرصدة جميع حسابات المستخدم (بنكية، نقدية، ادخار).',
-                'parameters' => ['type' => 'object', 'properties' => (object) []],
-            ],
-            [
-                'type' => 'function',
-                'name' => 'get_top_categories',
-                'description' => 'جلب أعلى التصنيفات إنفاقاً في فترة محددة.',
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'range' => ['type' => 'string', 'description' => 'الفترة الزمنية'],
-                        'limit' => ['type' => 'integer', 'description' => 'عدد التصنيفات (افتراضي 5)'],
-                    ],
-                ],
-            ],
-            [
-                'type' => 'function',
-                'name' => 'get_budget_status',
-                'description' => 'جلب حالة الميزانيات الشهرية (المنصرف، المتبقي، نسبة الاستخدام).',
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'month' => ['type' => 'string', 'description' => 'الشهر بصيغة Y-m (مثال: 2026-09)'],
-                    ],
-                ],
-            ],
-            [
-                'type' => 'function',
-                'name' => 'get_recent_transactions',
-                'description' => 'جلب آخر N معاملة للمستخدم.',
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'limit' => ['type' => 'integer', 'description' => 'عدد المعاملات (افتراضي 10)'],
-                    ],
-                ],
-            ],
-            [
-                'type' => 'function',
-                'name' => 'get_spending_trend',
-                'description' => 'جلب اتجاه الإنفاق لآخر 3 أشهر مع النسبة المئوية للتغيير.',
-                'parameters' => ['type' => 'object', 'properties' => (object) []],
-            ],
-            [
-                'type' => 'function',
-                'name' => 'get_available_categories',
-                'description' => 'جلب قائمة بجميع التصنيفات المتاحة للمستخدم (نظامية + شخصية).',
-                'parameters' => ['type' => 'object', 'properties' => (object) []],
-            ],
-            [
-                'type' => 'function',
-                'name' => 'propose_create_transaction',
-                'description' => 'اقتراح إضافة معاملة جديدة (لا تُنفذ إلا بعد موافقة المستخدم).',
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'account_id' => ['type' => 'integer'],
-                        'category_id' => ['type' => 'integer'],
-                        'type' => ['type' => 'string', 'enum' => ['expense', 'income']],
-                        'amount' => ['type' => 'number'],
-                        'description' => ['type' => 'string'],
-                        'transaction_date' => ['type' => 'string'],
-                        'payment_method' => ['type' => 'string', 'enum' => ['cash', 'card', 'transfer', 'other']],
-                        'notes' => ['type' => 'string'],
-                    ],
-                    'required' => ['account_id', 'category_id', 'type', 'amount', 'transaction_date'],
-                ],
-            ],
-            [
-                'type' => 'function',
-                'name' => 'propose_create_category',
-                'description' => 'اقتراح إنشاء تصنيف شخصي جديد (لا يُنفذ إلا بعد موافقة المستخدم).',
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'name' => ['type' => 'string'],
-                        'icon' => ['type' => 'string'],
-                        'color_hex' => ['type' => 'string'],
-                    ],
-                    'required' => ['name'],
-                ],
-            ],
-            [
-                'type' => 'function',
-                'name' => 'propose_create_budget',
-                'description' => 'اقتراح إنشاء ميزانية جديدة (لا تُنفذ إلا بعد موافقة المستخدم).',
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'category_id' => ['type' => 'integer'],
-                        'amount' => ['type' => 'number'],
-                        'period' => ['type' => 'string', 'enum' => ['weekly', 'monthly', 'yearly']],
-                        'rollover_enabled' => ['type' => 'boolean'],
-                        'warn_pct' => ['type' => 'number'],
-                        'critical_pct' => ['type' => 'number'],
-                    ],
-                    'required' => ['category_id', 'amount'],
-                ],
-            ],
-        ];
-    }
 
     /* ================================================================
      * تنسيق المحادثة للواجهة

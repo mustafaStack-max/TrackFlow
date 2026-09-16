@@ -26,6 +26,7 @@ class AgentMessage extends Model
         'tokens_used',
     ];
 
+
     protected $casts = [
         'tool_calls' => 'array',
         'tool_results' => 'array',
