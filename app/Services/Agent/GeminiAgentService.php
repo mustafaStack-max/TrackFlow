@@ -36,12 +36,14 @@ class GeminiAgentService
         ]);
     }
 
-    /* ==================================================
-     * ★ دور محادثة مع أدوات + حلقة Function Calling
+    /**
+     * ★ محادثة مع أدوات + حلقة Function Calling محسّنة
      *
-     * $executor: دالة تستقبل (اسم الأداة, الوسائط) وترجع النتيجة كمصفوفة.
-     * الحلقة تستمر حتى يعطي النموذج جواباً نهائياً بدون استدعاء أدوات.
-     * ================================================== */
+     * التحسينات:
+     *  1) جولة أخيرة بدون tools عند استنفاد maxRounds — تضمن ردّاً نصياً دائماً.
+     *  2) جمع tokens_used من كل جولة لإرجاع التكلفة الحقيقية.
+     *  3) إعادة المحاولة التلقائية عند 429/500 (3 محاولات).
+     */
     public function chatWithTools(
         string $message,
         array $tools,
@@ -52,7 +54,13 @@ class GeminiAgentService
         $input = $message;
         $previousId = $previousInteractionId;
         $toolCallsLog = [];
+        $totalUsage = [
+            'total_tokens' => 0,
+            'total_input_tokens' => 0,
+            'total_output_tokens' => 0,
+        ];
         $reply = null;
+        $lastFunctionCalls = [];
 
         for ($round = 1; $round <= $maxRounds; $round++) {
             $reply = $this->send([
@@ -61,14 +69,22 @@ class GeminiAgentService
                 'previous_interaction_id' => $previousId,
             ]);
 
-            $functionCalls = $this->extractFunctionCalls($reply);
+            // جمع التكلفة التراكمية
+            if (! empty($reply['usage'])) {
+                $totalUsage['total_tokens'] += (int) ($reply['usage']['total_tokens'] ?? 0);
+                $totalUsage['total_input_tokens'] += (int) ($reply['usage']['total_input_tokens'] ?? 0);
+                $totalUsage['total_output_tokens'] += (int) ($reply['usage']['total_output_tokens'] ?? 0);
+            }
 
-            // لا توجد استدعاءات أدوات → هذا هو الجواب النهائي
+            $functionCalls = $this->extractFunctionCalls($reply);
+            $lastFunctionCalls = $functionCalls;
+
+            // لا توجد استدعاءات → هذا هو الجواب النهائي
             if (empty($functionCalls)) {
                 break;
             }
 
-            // تنفيذ الأدوات محلياً وتجهيز النتائج للنموذج
+            // تنفيذ الأدوات محلياً
             $functionResults = [];
             foreach ($functionCalls as $call) {
                 $name = $call['name'];
@@ -76,7 +92,7 @@ class GeminiAgentService
 
                 try {
                     $result = $executor($name, $args);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     $result = ['error' => $e->getMessage()];
                 }
 
@@ -96,15 +112,46 @@ class GeminiAgentService
                 ];
             }
 
-            // الجولة التالية: النتائج كمدخل، مع ربط المحادثة على الخادم
             $input = $functionResults;
             $previousId = $reply['interaction_id'] ?? $previousId;
         }
 
+        // ★ الإصلاح 1: إذا استنفذنا الجولات والنموذج ما زال يطلب أدوات،
+        // نُجبر رداً نصياً بإرسال جولة أخيرة بدون tools.
+        if (! empty($lastFunctionCalls) && ! empty($reply['text'] === '')) {
+            try {
+                $finalReply = $this->send([
+                    'input' => $input,
+                    'previous_interaction_id' => $previousId,
+                    // لا نمرّر tools — نُجبر النموذج على الرد النصي
+                ]);
+
+                if (! empty($finalReply['text'])) {
+                    $reply['text'] = $finalReply['text'];
+                    $reply['interaction_id'] = $finalReply['interaction_id'] ?? $reply['interaction_id'];
+                }
+
+                if (! empty($finalReply['usage'])) {
+                    $totalUsage['total_tokens'] += (int) ($finalReply['usage']['total_tokens'] ?? 0);
+                    $totalUsage['total_input_tokens'] += (int) ($finalReply['usage']['total_input_tokens'] ?? 0);
+                    $totalUsage['total_output_tokens'] += (int) ($finalReply['usage']['total_output_tokens'] ?? 0);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed final no-tools round', ['error' => $e->getMessage()]);
+                // إذا فشلت الجولة الأخيرة، نُرجع رسالة واضحة بدل الصمت
+                if (empty($reply['text'])) {
+                    $reply['text'] = "عذراً، تعذّر إكمال الرد. حاول مرة أخرى بسؤال أكثر تحديداً.";
+                }
+            }
+        }
+
         $reply['tool_calls_log'] = $toolCallsLog;
+        $reply['tokens_used'] = $totalUsage;  // ★ الإصلاح 2: تكلفة حقيقية
 
         return $reply;
     }
+
+    
 
         /* ==================================================
      * ★ محادثة مع صورة (Multimodal)
@@ -186,10 +233,7 @@ PROMPT;
         }
     }
 
-    /* ==================================================
-     * ★ إرسال الطلب الفعلي إلى Gemini API
-     * ================================================== */
-    protected function send(array $options): array
+     protected function send(array $options): array
     {
         $payload = array_filter([
             'model' => $this->model,
@@ -216,33 +260,34 @@ PROMPT;
             throw new Exception('فشل الاتصال بـ Gemini API: ' . $errorMessage);
         }
 
-$data = $response->json();
+        $data = $response->json();
 
-// استخراج النص من steps إذا كان output_text فارغاً
-$text = $data['output_text'] ?? '';
-if ($text === '' && ! empty($data['steps'])) {
-    foreach ($data['steps'] as $step) {
-        if (($step['type'] ?? '') === 'model_output' && ! empty($step['content'])) {
-            foreach ($step['content'] as $block) {
-                if (($block['type'] ?? '') === 'text' && ! empty($block['text'])) {
-                    $text = $block['text'];
-                    break 2;
+        // استخراج النص من steps إذا كان output_text فارغاً
+        $text = $data['output_text'] ?? '';
+        if ($text === '' && ! empty($data['steps'])) {
+            foreach ($data['steps'] as $step) {
+                if (($step['type'] ?? '') === 'model_output' && ! empty($step['content'])) {
+                    foreach ($step['content'] as $block) {
+                        if (($block['type'] ?? '') === 'text' && ! empty($block['text'])) {
+                            $text = $block['text'];
+                            break 2;
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
-return [
-    'interaction_id' => $data['id'] ?? null,
-    'text' => $text,
-    'steps' => $data['steps'] ?? [],
-    'status' => $data['status'] ?? 'completed',
-    'usage' => $data['usage_metadata'] ?? null,
-    'raw' => $data, // للاطلاع على الرد الكامل عند الحاجة
-    'tool_calls_log' => [],
-];
+        return [
+            'interaction_id' => $data['id'] ?? null,
+            'text' => $text,
+            'steps' => $data['steps'] ?? [],
+            'status' => $data['status'] ?? 'completed',
+            'usage' => $data['usage'] ?? $data['usage_metadata'] ?? null,
+            'raw' => $data,
+            'tool_calls_log' => [],
+        ];
     }
+
 
     /* ==================================================
      * ★ استخراج استدعاءات الأدوات من خطوات الرد
