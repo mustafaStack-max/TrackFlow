@@ -1,7 +1,8 @@
+import { forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { COLORS as C, FONT as F } from '@/shared/lib/theme';
 import { ACTION_META } from './constants';
-import { useMinutesLeft } from './Hooks' ;
+import { useMinutesLeft } from './Hooks';
 import { IcoShield, IcoClock, IcoCheck, IcoX } from './icons';
 
 function ImpactRow({ label, value, tone }) {
@@ -22,15 +23,26 @@ function BudgetBar({ pct, status }) {
   );
 }
 
-export default function PendingActionCard({ action, busy, onApprove, onReject }) {
+const PendingActionCard = forwardRef(function PendingActionCard({ action, busy, onApprove, onReject }, ref) {
   const meta = ACTION_META[action.action_type] || { icon: '⚙️', label: action.action_type };
   const impact = action.impact_analysis || {};
   const payload = action.payload || {};
   const minutesLeft = useMinutesLeft(action.expires_at);
-  const urgent = minutesLeft <= 5;
+  const noExpiry = !Number.isFinite(minutesLeft);
+  const expired = !noExpiry && minutesLeft <= 0;
+  const urgent = !noExpiry && minutesLeft <= 5;
 
   return (
-    <motion.div layout initial={{ opacity: 0, y: 20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.18 } }} transition={{ type: 'spring', stiffness: 280, damping: 26 }} className="relative overflow-hidden border" style={{ borderColor: `${C.amber}55`, background: `linear-gradient(160deg, ${C.amber}0d, ${C.card2} 45%)`, boxShadow: `0 0 24px ${C.amber}12` }}>
+    <motion.div
+      ref={ref}
+      layout
+      initial={{ opacity: 0, y: 20, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.18 } }}
+      transition={{ type: 'spring', stiffness: 280, damping: 26 }}
+      className="relative shrink-0 overflow-hidden border"
+      style={{ borderColor: `${C.amber}55`, background: `linear-gradient(160deg, ${C.amber}0d, ${C.card2} 45%)`, boxShadow: `0 0 24px ${C.amber}12` }}
+    >
       <div className="h-0.5 w-full" style={{ background: `linear-gradient(to right, transparent, ${C.amber}, transparent)` }} />
 
       <div className="flex flex-col gap-3 p-4">
@@ -45,7 +57,7 @@ export default function PendingActionCard({ action, busy, onApprove, onReject })
             </div>
           </div>
           <span className={`${F.mono} flex items-center gap-1 border px-2 py-1 text-[0.55rem]`} style={{ borderColor: urgent ? `${C.red}66` : `${C.amber}44`, color: urgent ? C.red : C.t3, background: urgent ? `${C.red}0d` : 'transparent' }}>
-            <IcoClock /> {minutesLeft > 0 ? `تنتهي بعد ${minutesLeft} دقيقة` : 'انتهت الصلاحية'}
+            <IcoClock /> {noExpiry ? 'صالحة بدون انتهاء' : expired ? 'انتهت الصلاحية' : `تنتهي بعد ${minutesLeft} دقيقة`}
           </span>
         </div>
 
@@ -113,7 +125,13 @@ export default function PendingActionCard({ action, busy, onApprove, onReject })
         )}
 
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <button type="button" disabled={busy || minutesLeft <= 0} onClick={onApprove} className="flex items-center gap-1.5 border px-4 py-2 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40" style={{ borderColor: C.green, background: C.green, color: C.void, boxShadow: `0 0 16px ${C.green}44` }}>
+          <button
+            type="button"
+            disabled={busy || expired}
+            onClick={onApprove}
+            className="flex items-center gap-1.5 border px-4 py-2 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ borderColor: C.green, background: C.green, color: C.void, boxShadow: `0 0 16px ${C.green}44` }}
+          >
             {busy ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-black/30 border-t-black" /> : <IcoCheck />}
             <span className={`${F.ar} text-[0.7rem] font-bold`}>تأكيد التنفيذ</span>
           </button>
@@ -126,4 +144,6 @@ export default function PendingActionCard({ action, busy, onApprove, onReject })
       </div>
     </motion.div>
   );
-}
+});
+
+export default PendingActionCard;
