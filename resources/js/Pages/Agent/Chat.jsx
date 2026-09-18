@@ -49,7 +49,6 @@ export default function Chat({ conversations = [], activeConversation = null, me
     <AuthenticatedLayout>
       <Head title="المساعد المالي الذكي" />
       <Toast toast={toast} />
-
       <div className="flex flex-col gap-3">
         {/* الرأس */}
         <div className="overflow-hidden border" style={{ background: C.card, borderColor: C.b }}>
@@ -88,7 +87,6 @@ export default function Chat({ conversations = [], activeConversation = null, me
             onSelect={(uuid) => router.get(`/agent/${uuid}`)}
             onDelete={(uuid) => router.delete(`/agent/${uuid}`)}
           />
-
           <div className="order-1 flex flex-col border lg:col-span-3 lg:order-2" style={{ borderColor: C.b, background: C.card }}>
             <div ref={scrollRef} className="flex h-[58vh] flex-col gap-4 overflow-y-auto p-4">
               {!activeConversation ? (
@@ -99,7 +97,7 @@ export default function Chat({ conversations = [], activeConversation = null, me
                     const prev = messages[i - 1];
                     const sep = !prev || m.created_at?.slice(0, 10) !== prev.created_at?.slice(0, 10);
                     return (
-                      <div key={m.uuid} className="flex flex-col gap-4">
+                      <div key={m.uuid} className="flex shrink-0 flex-col gap-4">
                         {sep && <DaySeparator date={m.created_at} />}
                         <MessageRow msg={m} />
                       </div>
@@ -110,11 +108,16 @@ export default function Chat({ conversations = [], activeConversation = null, me
                       <PendingActionCard key={a.token} action={a} busy={busyToken === a.token} onApprove={() => approve(a.token)} onReject={() => reject(a.token)} />
                     ))}
                   </AnimatePresence>
-                  <AnimatePresence>{sending && <ThinkingIndicator key="thinking" />}</AnimatePresence>
+                  <AnimatePresence>
+                    {sending && (
+                      <div key="thinking" className="shrink-0">
+                        <ThinkingIndicator />
+                      </div>
+                    )}
+                  </AnimatePresence>
                 </>
               )}
             </div>
-
             <ChatComposer active={!!activeConversation} sending={sending} onSend={handleSend} notify={setToast} />
           </div>
         </div>
