@@ -628,4 +628,20 @@ public function getEmergencyFundStatus(User $user): array
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
+
+public function getTodayDate(): array
+{
+    $now = now();
+
+    return [
+        'iso_date'     => $now->toDateString(),                            // 2025-06-10
+        'formatted_ar' => $now->locale('ar')->translatedFormat('l d F Y'), // الثلاثاء 10 يونيو 2025
+        'day_of_week'  => $now->locale('ar')->dayName,                     // الثلاثاء
+        'month'        => $now->locale('ar')->monthName,                   // يونيو
+        'year'         => $now->year,
+        'timezone'     => config('app.timezone'),
+        'full_iso'     => $now->toIso8601String(),
+        'INSTRUCTION'  => 'هذا تاريخ اليوم الرسمي للنظام محسوب برمجياً. استعمل iso_date حرفياً عند تعبئة transaction_date، ولا تخمّن التاريخ بنفسك.',
+    ];
+}
 }

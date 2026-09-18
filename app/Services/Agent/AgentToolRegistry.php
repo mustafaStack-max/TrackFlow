@@ -2,16 +2,10 @@
 
 namespace App\Services\Agent;
 
-/**
- * سجل الأدوات: مكان واحد لتعريف كل أداة + تصنيفها قراءة/كتابة.
- *
- * الفصل بين READ و WRITE ليس تنظيمياً فقط — هو حاجز أمان:
- * أدوات WRITE لا تُنفَّذ أبداً مباشرة، بل تمر إجبارياً عبر
- * ActionConfirmationService::propose() ثم موافقة المستخدم.
- */
+
 class AgentToolRegistry
 {
-    /** أدوات القراءة — تُنفَّذ فوراً بلا موافقة */
+
     public const READ_TOOLS = [
         'get_financial_summary',
         'get_account_balances',
@@ -20,7 +14,7 @@ class AgentToolRegistry
         'get_recent_transactions',
         'get_spending_trend',
         'get_available_categories',
-        // ★ المقترحة
+        "get_today_date",        
         'search_transactions',
         'get_cashflow_forecast',
         'get_recurring_expenses',
@@ -45,7 +39,7 @@ class AgentToolRegistry
         'create_budget',
         'update_budget',
         'update_transaction',
-        // ★ المقترحة
+
         'create_goal',
         'update_goal',
         'contribute_to_goal',
@@ -175,6 +169,7 @@ class AgentToolRegistry
             self::fn('recall_facts', 'استرجاع ما حُفظ سابقاً عن المستخدم (أهدافه، تحمّله للمخاطرة، أنماطه، ما جرّبه). استدعها في بداية أي محادثة تحليلية.', [
                 'topic' => self::str('موضوع للتصفية، اتركه فارغاً لكل شيء'),
             ]),
+            self::fn('get_today_date', 'تاريخ اليوم الحالي للنظام: صيغة ISO وصيغة عربية مقروءة مع اسم اليوم والشهر والسنة والمنطقة الزمنية. استدعها دائماً قبل تحديد transaction_date لأي معاملة أو قبل أي مقارنة زمنية.'),
         ];
     }
 

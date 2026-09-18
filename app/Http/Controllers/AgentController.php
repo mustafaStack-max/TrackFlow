@@ -257,13 +257,11 @@ class AgentController extends Controller
         };
     }
 
-    /* ================================================================
-     * توجيه أدوات القراءة إلى FinancialToolsService
-     * (الأدوات غير المبنية بعد ترجع error مهذباً — مقصود ومؤقت)
-     * ================================================================ */
+
     protected function dispatchReadTool(User $user, string $name, array $args): array
     {
         return match ($name) {
+             'get_today_date'           => $this->tools->getTodayDate(),   
             'get_financial_summary'    => $this->tools->getFinancialSummary($user, $args['range'] ?? '30d', $args['from'] ?? null, $args['to'] ?? null),
             'get_account_balances'     => $this->tools->getAccountBalances($user),
             'get_top_categories'       => $this->tools->getTopCategories($user, $args['range'] ?? '30d', (int) ($args['limit'] ?? 5), $args['from'] ?? null, $args['to'] ?? null),
@@ -279,9 +277,6 @@ class AgentController extends Controller
         };
     }
 
-    /* ================================================================
-     * مسار الفاتورة المصورة (OCR → اقتراح معاملة)
-     * ================================================================ */
     protected function handleReceipt(User $user, AgentMessage $userMessage, $file): array
     {
         $imageBase64 = base64_encode(file_get_contents($file->getRealPath()));
