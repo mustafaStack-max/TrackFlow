@@ -4,100 +4,153 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\BudgetController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DataBackupController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TransactionController;
-use Illuminate\Foundation\Application;
+use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 
-use Illuminate\Http\Request;
-use Inertia\Inertia;
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+Route::get('/', WelcomeController::class)->name('home');
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+/*
+|--------------------------------------------------------------------------
+| Authenticated Routes
+|--------------------------------------------------------------------------
+*/
 
 Route::middleware('auth')->group(function () {
 
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    /*
+    |----------------------------------------------------------------------
+    | Dashboard
+    |----------------------------------------------------------------------
+    */
 
-    Route::get('budgets/suggest', [BudgetController::class, 'suggest'])->name('budgets.suggest');
-    Route::resource('budgets', BudgetController::class)->except(['create', 'show', 'edit']);
+    Route::get('dashboard', [DashboardController::class, 'index'])
+        ->middleware('verified')
+        ->name('dashboard');
 
-    Route::get('notifications', function (Request $request) {
-        return $request->user()->notifications()->latest()->take(15)->get()->map(fn ($n) => [
-            'id' => $n->id,
-            'message' => $n->data['message'] ?? '',
-            'level' => $n->data['level'] ?? 'info',
-            'created_at' => $n->created_at?->diffForHumans(),
-            'read_at' => $n->read_at,
-        ]);
-    })->name('notifications.index');
+    /*
+    |----------------------------------------------------------------------
+    | Profile
+    |----------------------------------------------------------------------
+    */
 
-    Route::post('notifications/read-all', function (Request $request) {
-        $request->user()->unreadNotifications->markAsRead();
-        return back();
-    })->name('notifications.readAll');
+    Route::controller(ProfileController::class)
+        ->prefix('profile')
+        ->name('profile.')
+        ->group(function () {
+            Route::get('/', 'edit')->name('edit');
+            Route::patch('/', 'update')->name('update');
+            Route::delete('/', 'destroy')->name('destroy');
+        });
 
-    Route::post('notifications/{id}/read', function (Request $request, $id) {
-        $n = $request->user()->notifications()->findOrFail($id);
-        $n->markAsRead();
-        return back();
-    })->name('notifications.readOne');
+    /*
+    |----------------------------------------------------------------------
+    | Budgets
+    |----------------------------------------------------------------------
+    */
 
-    
-    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
-    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::controller(BudgetController::class)
+        ->prefix('budgets')
+        ->name('budgets.')
+        ->group(function () {
+            Route::get('suggest', 'suggest')->name('suggest');
+        });
 
-    Route::get('/data/export', [DataBackupController::class, 'export'])->name('data.export');
-    Route::post('/data/import', [DataBackupController::class, 'import'])->name('data.import');
+    Route::resource('budgets', BudgetController::class)
+        ->except(['create', 'show', 'edit']);
+
+    /*
+    |----------------------------------------------------------------------
+    | Notifications
+    |----------------------------------------------------------------------
+    */
+
+    Route::controller(NotificationController::class)
+        ->prefix('notifications')
+        ->name('notifications.')
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('read-all', 'readAll')->name('readAll');
+            Route::post('{notificationId}/read', 'read')->name('readOne');
+        });
+
+    /*
+    |----------------------------------------------------------------------
+    | Analytics & Settings
+    |----------------------------------------------------------------------
+    */
+
+    Route::get('analytics', [AnalyticsController::class, 'index'])
+        ->name('analytics.index');
+
+    Route::get('settings', [SettingsController::class, 'index'])
+        ->name('settings.index');
+
+    /*
+    |----------------------------------------------------------------------
+    | Data Backup
+    |----------------------------------------------------------------------
+    */
+
+    Route::controller(DataBackupController::class)
+        ->prefix('data')
+        ->name('data.')
+        ->group(function () {
+            Route::get('export', 'export')->name('export');
+            Route::post('import', 'import')->name('import');
+        });
+
+    /*
+    |----------------------------------------------------------------------
+    | AI Agent
+    |----------------------------------------------------------------------
+    */
+
+    Route::controller(AgentController::class)
+        ->prefix('agent')
+        ->name('agent.')
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'create')->name('create');
+
+            Route::get('{agent:uuid}', 'show')->name('show');
+            Route::post('{agent:uuid}/chat', 'chat')->name('chat');
+            Route::post('{agent:uuid}/close', 'close')->name('close');
+            Route::delete('{agent:uuid}', 'destroy')->name('destroy');
+
+            Route::prefix('actions/{token}')->group(function () {
+                Route::post('approve', 'approveAction')->name('approve');
+                Route::post('reject', 'rejectAction')->name('reject');
+            });
+        });
+
+    /*
+    |----------------------------------------------------------------------
+    | Accounts / Categories / Transactions
+    |----------------------------------------------------------------------
+    */
+
+    Route::resource('accounts', AccountController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->scoped(['account' => 'uuid']);
+
+    Route::resource('categories', CategoryController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
+
+    Route::resource('transactions', TransactionController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
 });
 
-
-Route::get('/accounts' , [AccountController::class , 'index'])->middleware('auth')->name('accounts.index') ;
-Route::post('/accounts' , [AccountController::class , 'store'])->middleware('auth')->name('accounts.store') ;
-Route::put('/accounts/{account:uuid}' , [AccountController::class , 'update'])->middleware('auth')->name('accounts.update') ;
-Route::delete('/accounts/{account:id}' , [AccountController::class , 'destroy'])->middleware('auth')->name('accounts.destroy') ;
-
-Route::get('/categories' , [CategoryController::class , 'index'])->middleware('auth')->name('categories.index') ;
-Route::post('/categories' , [CategoryController::class , 'store'])->middleware('auth')->name('categories.store') ;
-Route::put('/categories/{category:id}' , [CategoryController::class , 'update'])->middleware('auth')->name('categories.update')  ;
-Route::delete('/categories/{category:id}' , [CategoryController::class , 'destroy'])->middleware('auth')->name('categories.destroy')  ;
-
-
-Route::get('/transactions' , [TransactionController::class , 'index'])->middleware('auth')->name('transactions.index') ;
-Route::post('/transactions' , [TransactionController::class , 'store'])->middleware('auth')->name('transactions.store') ;
-Route::put('/transactions/{transaction:id}' , [TransactionController::class , 'update'])->middleware('auth')->name('transactions.update')  ;
-Route::delete('/transactions/{transaction:id}' , [TransactionController::class , 'destroy'])->middleware('auth')->name('transactions.destroy')  ;
-
-
-
-/* ========================================
- * ★ AI Agent
- * ======================================== */
-Route::middleware('auth')->group(function () {
-    Route::get('/agent', [AgentController::class, 'index'])->name('agent.index');
-    Route::post('/agent', [AgentController::class, 'create'])->name('agent.create');
-    Route::get('/agent/{uuid}', [AgentController::class, 'show'])->name('agent.show');
-    Route::post('/agent/{uuid}/chat', [AgentController::class, 'chat'])->name('agent.chat');
-    Route::post('/agent/{uuid}/close', [AgentController::class, 'close'])->name('agent.close');
-    Route::delete('/agent/{uuid}', [AgentController::class, 'destroy'])->name('agent.destroy');
-
-
-    Route::post('/agent/actions/{token}/approve', [AgentController::class, 'approveAction'])->name('agent.approve');
-    Route::post('/agent/actions/{token}/reject', [AgentController::class, 'rejectAction'])->name('agent.reject');
-});
-
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
